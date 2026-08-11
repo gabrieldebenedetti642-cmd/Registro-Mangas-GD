@@ -156,10 +156,17 @@ function CorralApp() {
     if (editando) {
       handleCancelarEdicion();
     } else {
-      setInsumosSel([]);
-      setInsumoOtro("");
-      setObservaciones("");
+      resetFormulario();
     }
+  }
+  function resetFormulario() {
+    setFecha(hoyISO());
+    setPotrero("");
+    setCategoria("");
+    setCantidad("");
+    setInsumosSel([]);
+    setInsumoOtro("");
+    setObservaciones("");
   }
   function handleEditar(lote) {
     setEditingLoteId(lote.loteId);
@@ -176,13 +183,7 @@ function CorralApp() {
   }
   function handleCancelarEdicion() {
     setEditingLoteId(null);
-    setFecha(hoyISO());
-    setPotrero("");
-    setCategoria("");
-    setCantidad("");
-    setInsumosSel([]);
-    setInsumoOtro("");
-    setObservaciones("");
+    resetFormulario();
     setError("");
   }
   async function handleEliminar(id) {
