@@ -16,7 +16,7 @@ GitHub Pages.
    `https://TU-USUARIO.github.io/registro-mangas-gd/`
 6. Abrí ese link en el celular (Safari en iPhone, Chrome en Android) y usá
    "Agregar a pantalla de inicio" — ahora sí con el ícono y nombre propios,
-   sin pasar por Claude.
+   sin pasar por Claude. 
 
 Los datos que cargues quedan guardados en el propio teléfono (localStorage del
 navegador), no se comparten entre dispositivos.
