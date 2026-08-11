@@ -35,6 +35,7 @@ const INSUMO_GRUPOS = [
     items: ["Marca", "Caravana mosca"]
   }
 ];
+const ALL_INSUMOS = INSUMO_GRUPOS.flatMap((g) => g.items);
 const CATEGORIA_COLOR = {
   "Vacas de cr\xEDa": "#C98A3D",
   "Vacas descarte": "#9C6B2C",
@@ -87,6 +88,7 @@ function CorralApp() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
+  const [editingLoteId, setEditingLoteId] = useState(null);
   const [fecha, setFecha] = useState(hoyISO());
   const [potrero, setPotrero] = useState("");
   const [categoria, setCategoria] = useState("");
@@ -134,9 +136,10 @@ function CorralApp() {
       return;
     }
     setSaving(true);
-    const loteId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const editando = !!editingLoteId;
+    const loteId = editingLoteId || Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const nuevos = todosInsumos.map((ins, idx) => ({
-      id: `${loteId}-${idx}`,
+      id: `${loteId}-${Date.now().toString(36)}${idx}`,
       loteId,
       fecha,
       potrero: potrero.trim(),
@@ -145,20 +148,55 @@ function CorralApp() {
       cantidad: cant,
       observaciones: observaciones.trim()
     }));
-    await persist([...entries, ...nuevos]);
+    const base = editando ? entries.filter((en) => en.loteId !== loteId) : entries;
+    await persist([...base, ...nuevos]);
     setSaving(false);
-    setToast(nuevos.length > 1 ? `${nuevos.length} insumos guardados` : "Registro guardado");
+    setToast(editando ? "Cambios guardados" : nuevos.length > 1 ? `${nuevos.length} insumos guardados` : "Registro guardado");
     setTimeout(() => setToast(""), 1800);
+    if (editando) {
+      handleCancelarEdicion();
+    } else {
+      setInsumosSel([]);
+      setInsumoOtro("");
+      setObservaciones("");
+    }
+  }
+  function handleEditar(lote) {
+    setEditingLoteId(lote.loteId);
+    setFecha(lote.fecha);
+    setPotrero(lote.potrero);
+    setCategoria(lote.categoria);
+    setCantidad(String(lote.cantidad));
+    setObservaciones(lote.observaciones || "");
+    const nombresInsumo = lote.items.map((it) => it.insumo);
+    setInsumosSel(nombresInsumo.filter((ins) => ALL_INSUMOS.includes(ins)));
+    setInsumoOtro(nombresInsumo.filter((ins) => !ALL_INSUMOS.includes(ins)).join(", "));
+    setError("");
+    setTab("cargar");
+  }
+  function handleCancelarEdicion() {
+    setEditingLoteId(null);
+    setFecha(hoyISO());
+    setPotrero("");
+    setCategoria("");
+    setCantidad("");
     setInsumosSel([]);
     setInsumoOtro("");
     setObservaciones("");
+    setError("");
   }
   async function handleEliminar(id) {
     await persist(entries.filter((en) => en.id !== id));
   }
+  async function handleEliminarLote(loteId) {
+    if (!window.confirm("\xBFEliminar este registro completo?")) return;
+    await persist(entries.filter((en) => en.loteId !== loteId));
+    if (editingLoteId === loteId) handleCancelarEdicion();
+  }
   async function handleVaciar() {
     if (!window.confirm("\xBFVaciar todos los registros? No se puede deshacer.")) return;
     await persist([]);
+    handleCancelarEdicion();
   }
   const potrerosConocidos = useMemo(
     () => Array.from(new Set(entries.map((e) => e.potrero))).sort(),
@@ -251,7 +289,7 @@ function CorralApp() {
     XLSX.writeFile(wb, `mangas_gd_${hoyISO()}.xlsx`);
   }
   function LoteCard({ lote, showDelete }) {
-    return /* @__PURE__ */ React.createElement("div", { className: "lote-card" }, /* @__PURE__ */ React.createElement("div", { className: "lote-head" }, /* @__PURE__ */ React.createElement("span", { className: "tag", style: { background: CATEGORIA_COLOR[lote.categoria] || "#8a8a8a" } }, /* @__PURE__ */ React.createElement("span", { className: "dot" }), lote.categoria), /* @__PURE__ */ React.createElement("div", { className: "entry-main" }, /* @__PURE__ */ React.createElement("div", { className: "l1" }, lote.potrero, " \xB7 ", lote.cantidad, " cab."), /* @__PURE__ */ React.createElement("div", { className: "l2" }, fechaLegible(lote.fecha), lote.observaciones ? ` \xB7 ${lote.observaciones}` : ""))), /* @__PURE__ */ React.createElement("div", { className: "chips-row" }, lote.items.map((it) => /* @__PURE__ */ React.createElement("span", { className: "mini-chip", key: it.id }, it.insumo, showDelete && /* @__PURE__ */ React.createElement("button", { className: "mini-x", onClick: () => handleEliminar(it.id), "aria-label": "Quitar insumo" }, "\u2715")))));
+    return /* @__PURE__ */ React.createElement("div", { className: "lote-card" }, /* @__PURE__ */ React.createElement("div", { className: "lote-head" }, /* @__PURE__ */ React.createElement("span", { className: "tag", style: { background: CATEGORIA_COLOR[lote.categoria] || "#8a8a8a" } }, /* @__PURE__ */ React.createElement("span", { className: "dot" }), lote.categoria), /* @__PURE__ */ React.createElement("div", { className: "entry-main" }, /* @__PURE__ */ React.createElement("div", { className: "l1" }, lote.potrero, " \xB7 ", lote.cantidad, " cab."), /* @__PURE__ */ React.createElement("div", { className: "l2" }, fechaLegible(lote.fecha), lote.observaciones ? ` \xB7 ${lote.observaciones}` : ""))), /* @__PURE__ */ React.createElement("div", { className: "chips-row" }, lote.items.map((it) => /* @__PURE__ */ React.createElement("span", { className: "mini-chip", key: it.id }, it.insumo, showDelete && /* @__PURE__ */ React.createElement("button", { className: "mini-x", onClick: () => handleEliminar(it.id), "aria-label": "Quitar insumo" }, "\u2715")))), /* @__PURE__ */ React.createElement("div", { className: "lote-actions" }, /* @__PURE__ */ React.createElement("button", { type: "button", className: "link-btn", onClick: () => handleEditar(lote) }, "Editar"), /* @__PURE__ */ React.createElement("button", { type: "button", className: "link-btn danger", onClick: () => handleEliminarLote(lote.loteId) }, "Eliminar registro")));
   }
   const ultimosLotes = lotesOrdenados.slice(0, 8);
   return /* @__PURE__ */ React.createElement("div", { className: "app" }, /* @__PURE__ */ React.createElement("style", null, `
@@ -512,6 +550,36 @@ function CorralApp() {
           padding: 3px 5px;
         }
         .mini-x:hover { color: var(--danger); }
+        .lote-actions {
+          display: flex;
+          gap: 18px;
+          margin-top: 10px;
+        }
+        .link-btn {
+          background: none;
+          border: none;
+          padding: 0;
+          font-family: 'Inter', sans-serif;
+          font-size: 12.5px;
+          font-weight: 600;
+          color: var(--brass-light);
+          cursor: pointer;
+        }
+        .link-btn.danger { color: var(--danger); }
+        .edit-banner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: var(--surface-2);
+          border: 1px solid var(--brass);
+          color: var(--brass-light);
+          font-size: 13px;
+          font-weight: 600;
+          padding: 9px 12px;
+          border-radius: 8px;
+          margin-bottom: 14px;
+        }
+        .edit-banner .link-btn { color: var(--text); }
         .section-title {
           font-family: 'Bitter', serif;
           font-size: 15px;
@@ -560,7 +628,7 @@ function CorralApp() {
         @media (max-width: 380px) {
           .row2 { grid-template-columns: 1fr; }
         }
-      `), /* @__PURE__ */ React.createElement("div", { className: "header" }, /* @__PURE__ */ React.createElement(GDMark, null), /* @__PURE__ */ React.createElement("div", { className: "titles" }, /* @__PURE__ */ React.createElement("h1", null, "Registro Mangas GD"), /* @__PURE__ */ React.createElement("p", null, "Trabajo con ganado por lote")), /* @__PURE__ */ React.createElement("div", { className: "counter" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, totalAnimales), /* @__PURE__ */ React.createElement("div", { className: "l" }, "animales"))), /* @__PURE__ */ React.createElement("div", { className: "tabs" }, /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "cargar" ? "active" : ""}`, onClick: () => setTab("cargar") }, "Cargar"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "resumen" ? "active" : ""}`, onClick: () => setTab("resumen") }, "Resumen"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "buscar" ? "active" : ""}`, onClick: () => setTab("buscar") }, "Buscar")), loading ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Cargando registros\u2026") : /* @__PURE__ */ React.createElement(React.Fragment, null, tab === "cargar" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("form", { onSubmit: handleGuardar }, /* @__PURE__ */ React.createElement("div", { className: "row2" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", null, "Fecha"), /* @__PURE__ */ React.createElement("input", { type: "date", value: fecha, onChange: (e) => setFecha(e.target.value) })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", null, "Cantidad de animales"), /* @__PURE__ */ React.createElement(
+      `), /* @__PURE__ */ React.createElement("div", { className: "header" }, /* @__PURE__ */ React.createElement(GDMark, null), /* @__PURE__ */ React.createElement("div", { className: "titles" }, /* @__PURE__ */ React.createElement("h1", null, "Registro Mangas GD"), /* @__PURE__ */ React.createElement("p", null, "Trabajo con ganado por lote")), /* @__PURE__ */ React.createElement("div", { className: "counter" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, totalAnimales), /* @__PURE__ */ React.createElement("div", { className: "l" }, "animales"))), /* @__PURE__ */ React.createElement("div", { className: "tabs" }, /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "cargar" ? "active" : ""}`, onClick: () => setTab("cargar") }, "Cargar"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "resumen" ? "active" : ""}`, onClick: () => setTab("resumen") }, "Resumen"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "buscar" ? "active" : ""}`, onClick: () => setTab("buscar") }, "Buscar")), loading ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Cargando registros\u2026") : /* @__PURE__ */ React.createElement(React.Fragment, null, tab === "cargar" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, editingLoteId && /* @__PURE__ */ React.createElement("div", { className: "edit-banner" }, "Editando registro", /* @__PURE__ */ React.createElement("button", { type: "button", className: "link-btn", onClick: handleCancelarEdicion }, "Cancelar")), /* @__PURE__ */ React.createElement("form", { onSubmit: handleGuardar }, /* @__PURE__ */ React.createElement("div", { className: "row2" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", null, "Fecha"), /* @__PURE__ */ React.createElement("input", { type: "date", value: fecha, onChange: (e) => setFecha(e.target.value) })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", null, "Cantidad de animales"), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "number",
@@ -595,7 +663,7 @@ function CorralApp() {
       value: observaciones,
       onChange: (e) => setObservaciones(e.target.value)
     }
-  ), error && /* @__PURE__ */ React.createElement("div", { className: "error" }, error), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", type: "submit", disabled: saving }, saving ? "Guardando\u2026" : "Guardar registro"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "\xDAltimos registros"), ultimosLotes.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Todav\xEDa no cargaste ning\xFAn registro.") : ultimosLotes.map((l) => /* @__PURE__ */ React.createElement(LoteCard, { lote: l, showDelete: true, key: l.loteId }))), entries.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { className: "btn btn-secondary", onClick: exportarExcel }, "Descargar Excel"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-danger", onClick: handleVaciar }, "Vaciar todos los registros"))), tab === "resumen" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "stat-grid" }, /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, lotes.length), /* @__PURE__ */ React.createElement("div", { className: "l" }, "Lotes trabajados")), /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, totalAnimales), /* @__PURE__ */ React.createElement("div", { className: "l" }, "Animales procesados")), /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, entries.length), /* @__PURE__ */ React.createElement("div", { className: "l" }, "Aplicaciones"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Por categor\xEDa"), porCategoria.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Sin datos todav\xEDa.") : /* @__PURE__ */ React.createElement("div", { className: "table-wrap" }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Categor\xEDa"), /* @__PURE__ */ React.createElement("th", null, "Animales"), /* @__PURE__ */ React.createElement("th", null, "Lotes"))), /* @__PURE__ */ React.createElement("tbody", null, porCategoria.map((r) => /* @__PURE__ */ React.createElement("tr", { key: r.categoria }, /* @__PURE__ */ React.createElement("td", null, r.categoria), /* @__PURE__ */ React.createElement("td", null, r.total), /* @__PURE__ */ React.createElement("td", null, r.count))))))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Por insumo"), porInsumo.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Sin datos todav\xEDa.") : /* @__PURE__ */ React.createElement("div", { className: "table-wrap" }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Insumo"), /* @__PURE__ */ React.createElement("th", null, "Animales"), /* @__PURE__ */ React.createElement("th", null, "Aplicaciones"))), /* @__PURE__ */ React.createElement("tbody", null, porInsumo.map((r) => /* @__PURE__ */ React.createElement("tr", { key: r.insumo }, /* @__PURE__ */ React.createElement("td", null, r.insumo), /* @__PURE__ */ React.createElement("td", null, r.total), /* @__PURE__ */ React.createElement("td", null, r.count))))))), entries.length > 0 && /* @__PURE__ */ React.createElement("button", { className: "btn btn-secondary", onClick: exportarExcel }, "Descargar Excel")), tab === "buscar" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("label", null, "Potrero"), /* @__PURE__ */ React.createElement(
+  ), error && /* @__PURE__ */ React.createElement("div", { className: "error" }, error), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", type: "submit", disabled: saving }, saving ? "Guardando\u2026" : editingLoteId ? "Guardar cambios" : "Guardar registro"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "\xDAltimos registros"), ultimosLotes.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Todav\xEDa no cargaste ning\xFAn registro.") : ultimosLotes.map((l) => /* @__PURE__ */ React.createElement(LoteCard, { lote: l, showDelete: true, key: l.loteId }))), entries.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { className: "btn btn-secondary", onClick: exportarExcel }, "Descargar Excel"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-danger", onClick: handleVaciar }, "Vaciar todos los registros"))), tab === "resumen" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "stat-grid" }, /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, lotes.length), /* @__PURE__ */ React.createElement("div", { className: "l" }, "Lotes trabajados")), /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, totalAnimales), /* @__PURE__ */ React.createElement("div", { className: "l" }, "Animales procesados")), /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, entries.length), /* @__PURE__ */ React.createElement("div", { className: "l" }, "Aplicaciones"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Por categor\xEDa"), porCategoria.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Sin datos todav\xEDa.") : /* @__PURE__ */ React.createElement("div", { className: "table-wrap" }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Categor\xEDa"), /* @__PURE__ */ React.createElement("th", null, "Animales"), /* @__PURE__ */ React.createElement("th", null, "Lotes"))), /* @__PURE__ */ React.createElement("tbody", null, porCategoria.map((r) => /* @__PURE__ */ React.createElement("tr", { key: r.categoria }, /* @__PURE__ */ React.createElement("td", null, r.categoria), /* @__PURE__ */ React.createElement("td", null, r.total), /* @__PURE__ */ React.createElement("td", null, r.count))))))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Por insumo"), porInsumo.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Sin datos todav\xEDa.") : /* @__PURE__ */ React.createElement("div", { className: "table-wrap" }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Insumo"), /* @__PURE__ */ React.createElement("th", null, "Animales"), /* @__PURE__ */ React.createElement("th", null, "Aplicaciones"))), /* @__PURE__ */ React.createElement("tbody", null, porInsumo.map((r) => /* @__PURE__ */ React.createElement("tr", { key: r.insumo }, /* @__PURE__ */ React.createElement("td", null, r.insumo), /* @__PURE__ */ React.createElement("td", null, r.total), /* @__PURE__ */ React.createElement("td", null, r.count))))))), entries.length > 0 && /* @__PURE__ */ React.createElement("button", { className: "btn btn-secondary", onClick: exportarExcel }, "Descargar Excel")), tab === "buscar" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("label", null, "Potrero"), /* @__PURE__ */ React.createElement(
     "input",
     {
       list: "potreros-list-buscar",
