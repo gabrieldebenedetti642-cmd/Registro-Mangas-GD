@@ -55,7 +55,7 @@ function fechaLegible(iso) {
   return `${d}/${m}/${y}`;
 }
 function GDMark() {
-  return /* @__PURE__ */ React.createElement("div", { className: "mark" }, /* @__PURE__ */ React.createElement("svg", { width: "46", height: "44", viewBox: "0 0 46 44" }, /* @__PURE__ */ React.createElement("defs", null, /* @__PURE__ */ React.createElement("linearGradient", { id: "greenGrad", x1: "0.1", y1: "0", x2: "0.5", y2: "1" }, /* @__PURE__ */ React.createElement("stop", { offset: "0%", stopColor: "#3C8B63" }), /* @__PURE__ */ React.createElement("stop", { offset: "45%", stopColor: "#1F5B40" }), /* @__PURE__ */ React.createElement("stop", { offset: "100%", stopColor: "#123526" })), /* @__PURE__ */ React.createElement("linearGradient", { id: "goldGrad", x1: "0", y1: "0", x2: "0.15", y2: "1" }, /* @__PURE__ */ React.createElement("stop", { offset: "0%", stopColor: "#FCE7AC" }), /* @__PURE__ */ React.createElement("stop", { offset: "40%", stopColor: "#D8A53C" }), /* @__PURE__ */ React.createElement("stop", { offset: "100%", stopColor: "#8A6318" })), /* @__PURE__ */ React.createElement("clipPath", { id: "letters" }, /* @__PURE__ */ React.createElement("text", { x: "7", y: "32.5", fontFamily: "Arial, sans-serif", fontWeight: "900", fontSize: "26", letterSpacing: "-5.3" }, "G"), /* @__PURE__ */ React.createElement("text", { x: "21", y: "32.5", fontFamily: "Arial, sans-serif", fontWeight: "900", fontSize: "26", letterSpacing: "-5.3" }, "D"))), /* @__PURE__ */ React.createElement("path", { d: "M17,3 a7,7 0 0 1 12,0 L29,13 Q29,17 23,17 Q17,17 17,13 Z", fill: "url(#greenGrad)" }), /* @__PURE__ */ React.createElement("circle", { cx: "23", cy: "8.5", r: "3.1", fill: "#1C1815" }), /* @__PURE__ */ React.createElement("circle", { cx: "23", cy: "8.5", r: "3.1", fill: "none", stroke: "#0E2318", strokeWidth: "0.6" }), /* @__PURE__ */ React.createElement("rect", { x: "2", y: "14", width: "42", height: "28", rx: "7", fill: "url(#greenGrad)" }), /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "mark" }, /* @__PURE__ */ React.createElement("svg", { width: "46", height: "44", viewBox: "0 0 46 44" }, /* @__PURE__ */ React.createElement("defs", null, /* @__PURE__ */ React.createElement("linearGradient", { id: "greenGrad", x1: "0.1", y1: "0", x2: "0.5", y2: "1" }, /* @__PURE__ */ React.createElement("stop", { offset: "0%", stopColor: "#3C8B63" }), /* @__PURE__ */ React.createElement("stop", { offset: "45%", stopColor: "#1F5B40" }), /* @__PURE__ */ React.createElement("stop", { offset: "100%", stopColor: "#123526" })), /* @__PURE__ */ React.createElement("linearGradient", { id: "goldGrad", x1: "0", y1: "0", x2: "0.15", y2: "1" }, /* @__PURE__ */ React.createElement("stop", { offset: "0%", stopColor: "#FCE7AC" }), /* @__PURE__ */ React.createElement("stop", { offset: "40%", stopColor: "#D8A53C" }), /* @__PURE__ */ React.createElement("stop", { offset: "100%", stopColor: "#8A6318" })), /* @__PURE__ */ React.createElement("clipPath", { id: "letters" }, /* @__PURE__ */ React.createElement("text", { x: "7", y: "32.5", fontFamily: "Arial, sans-serif", fontWeight: "900", fontSize: "26", letterSpacing: "-5.3" }, "G"), /* @__PURE__ */ React.createElement("text", { x: "21", y: "32.5", fontFamily: "Arial, sans-serif", fontWeight: "900", fontSize: "26", letterSpacing: "-5.3" }, "D"))), /* @__PURE__ */ React.createElement("path", { d: "M17,3 a7,7 0 0 1 12,0 L29,13 Q29,17 23,17 Q17,17 17,13 Z", fill: "url(#greenGrad)" }), /* @__PURE__ */ React.createElement("circle", { cx: "23", cy: "8.5", r: "3.1", fill: "var(--bg)" }), /* @__PURE__ */ React.createElement("circle", { cx: "23", cy: "8.5", r: "3.1", fill: "none", stroke: "#0E2318", strokeWidth: "0.6" }), /* @__PURE__ */ React.createElement("rect", { x: "2", y: "14", width: "42", height: "28", rx: "7", fill: "url(#greenGrad)" }), /* @__PURE__ */ React.createElement(
     "text",
     {
       x: "7",
@@ -89,6 +89,7 @@ function CorralApp() {
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [editingLoteId, setEditingLoteId] = useState(null);
+  const [theme, setTheme] = useState("dark");
   const [fecha, setFecha] = useState(hoyISO());
   const [potrero, setPotrero] = useState("");
   const [categoria, setCategoria] = useState("");
@@ -105,11 +106,23 @@ function CorralApp() {
         setEntries(res && res.value ? JSON.parse(res.value) : []);
       } catch (e) {
         setEntries([]);
-      } finally {
-        setLoading(false);
       }
+      try {
+        const t = await window.storage.get("tema", false);
+        if (t && t.value) setTheme(t.value);
+      } catch (e) {
+      }
+      setLoading(false);
     })();
   }, []);
+  async function toggleTheme() {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    try {
+      await window.storage.set("tema", next, false);
+    } catch (e) {
+    }
+  }
   async function persist(next) {
     setEntries(next);
     try {
@@ -293,28 +306,43 @@ function CorralApp() {
     return /* @__PURE__ */ React.createElement("div", { className: "lote-card" }, /* @__PURE__ */ React.createElement("div", { className: "lote-head" }, /* @__PURE__ */ React.createElement("span", { className: "tag", style: { background: CATEGORIA_COLOR[lote.categoria] || "#8a8a8a" } }, /* @__PURE__ */ React.createElement("span", { className: "dot" }), lote.categoria), /* @__PURE__ */ React.createElement("div", { className: "entry-main" }, /* @__PURE__ */ React.createElement("div", { className: "l1" }, lote.potrero, " \xB7 ", lote.cantidad, " cab."), /* @__PURE__ */ React.createElement("div", { className: "l2" }, fechaLegible(lote.fecha), lote.observaciones ? ` \xB7 ${lote.observaciones}` : ""))), /* @__PURE__ */ React.createElement("div", { className: "chips-row" }, lote.items.map((it) => /* @__PURE__ */ React.createElement("span", { className: "mini-chip", key: it.id }, it.insumo, showDelete && /* @__PURE__ */ React.createElement("button", { className: "mini-x", onClick: () => handleEliminar(it.id), "aria-label": "Quitar insumo" }, "\u2715")))), /* @__PURE__ */ React.createElement("div", { className: "lote-actions" }, /* @__PURE__ */ React.createElement("button", { type: "button", className: "link-btn", onClick: () => handleEditar(lote) }, "Editar"), /* @__PURE__ */ React.createElement("button", { type: "button", className: "link-btn danger", onClick: () => handleEliminarLote(lote.loteId) }, "Eliminar registro")));
   }
   const ultimosLotes = lotesOrdenados.slice(0, 8);
-  return /* @__PURE__ */ React.createElement("div", { className: "app" }, /* @__PURE__ */ React.createElement("style", null, `
+  return /* @__PURE__ */ React.createElement("div", { className: `app theme-${theme}` }, /* @__PURE__ */ React.createElement("style", null, `
         @import url('https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
 
         * { box-sizing: border-box; }
         .app {
+          min-height: 100vh;
+          background: var(--bg);
+          color: var(--text);
+          font-family: 'Inter', sans-serif;
+          padding: 20px 16px 60px;
+          transition: background 0.15s, color 0.15s;
+        }
+        .app.theme-dark {
           --bg: #1C1815;
           --surface: #26211C;
           --surface-2: #302922;
           --border: #423A30;
           --brass: #C98A3D;
           --brass-light: #E0AD64;
-          --silver: #C7C7C7;
           --text: #F1EAD9;
           --muted: #A9998A;
           --danger: #B5533C;
           --danger-bg: rgba(181,83,60,0.14);
           --success: #7A9471;
-          min-height: 100vh;
-          background: var(--bg);
-          color: var(--text);
-          font-family: 'Inter', sans-serif;
-          padding: 20px 16px 60px;
+        }
+        .app.theme-light {
+          --bg: #F5F0E4;
+          --surface: #FFFFFF;
+          --surface-2: #F1EAD9;
+          --border: #D9CBAE;
+          --brass: #B8752E;
+          --brass-light: #8A5A1F;
+          --text: #2A2318;
+          --muted: #8A7860;
+          --danger: #A3402B;
+          --danger-bg: rgba(163,64,43,0.10);
+          --success: #4F7A46;
         }
         .header {
           display: flex;
@@ -324,20 +352,28 @@ function CorralApp() {
         }
         .mark { flex-shrink: 0; margin-top: -2px; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.45)); }
         .mark svg { display: block; }
+        .titles { min-width: 0; }
         .titles h1 {
           font-family: 'Bitter', serif;
           font-size: 19px;
           margin: 0;
           letter-spacing: 0.2px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
         .titles p {
           margin: 2px 0 0;
           font-size: 12.5px;
           color: var(--muted);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
         .counter {
           margin-left: auto;
           text-align: right;
+          flex-shrink: 0;
         }
         .counter .n {
           font-family: 'Bitter', serif;
@@ -350,6 +386,21 @@ function CorralApp() {
           color: var(--muted);
           text-transform: uppercase;
           letter-spacing: 0.6px;
+        }
+        .theme-btn {
+          flex-shrink: 0;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          border: 1px solid var(--border);
+          background: var(--surface-2);
+          color: var(--text);
+          font-size: 15px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          padding: 0;
         }
         .tabs {
           display: flex;
@@ -394,6 +445,7 @@ function CorralApp() {
         label:first-child { margin-top: 0; }
         input, select, textarea {
           width: 100%;
+          min-width: 0;
           background: var(--surface-2);
           border: 1px solid var(--border);
           color: var(--text);
@@ -411,6 +463,9 @@ function CorralApp() {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 10px;
+        }
+        .row2 > div {
+          min-width: 0;
         }
         .btn {
           width: 100%;
@@ -629,7 +684,16 @@ function CorralApp() {
         @media (max-width: 380px) {
           .row2 { grid-template-columns: 1fr; }
         }
-      `), /* @__PURE__ */ React.createElement("div", { className: "header" }, /* @__PURE__ */ React.createElement(GDMark, null), /* @__PURE__ */ React.createElement("div", { className: "titles" }, /* @__PURE__ */ React.createElement("h1", null, "Registro Mangas GD"), /* @__PURE__ */ React.createElement("p", null, "Trabajo con ganado por lote")), /* @__PURE__ */ React.createElement("div", { className: "counter" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, totalAnimales), /* @__PURE__ */ React.createElement("div", { className: "l" }, "animales"))), /* @__PURE__ */ React.createElement("div", { className: "tabs" }, /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "cargar" ? "active" : ""}`, onClick: () => setTab("cargar") }, "Cargar"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "resumen" ? "active" : ""}`, onClick: () => setTab("resumen") }, "Resumen"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "buscar" ? "active" : ""}`, onClick: () => setTab("buscar") }, "Buscar")), loading ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Cargando registros\u2026") : /* @__PURE__ */ React.createElement(React.Fragment, null, tab === "cargar" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, editingLoteId && /* @__PURE__ */ React.createElement("div", { className: "edit-banner" }, "Editando registro", /* @__PURE__ */ React.createElement("button", { type: "button", className: "link-btn", onClick: handleCancelarEdicion }, "Cancelar")), /* @__PURE__ */ React.createElement("form", { onSubmit: handleGuardar }, /* @__PURE__ */ React.createElement("div", { className: "row2" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", null, "Fecha"), /* @__PURE__ */ React.createElement("input", { type: "date", value: fecha, onChange: (e) => setFecha(e.target.value) })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", null, "Cantidad de animales"), /* @__PURE__ */ React.createElement(
+      `), /* @__PURE__ */ React.createElement("div", { className: "header" }, /* @__PURE__ */ React.createElement(GDMark, null), /* @__PURE__ */ React.createElement("div", { className: "titles" }, /* @__PURE__ */ React.createElement("h1", null, "Registro Mangas GD"), /* @__PURE__ */ React.createElement("p", null, "Trabajo con ganado por lote")), /* @__PURE__ */ React.createElement("div", { className: "counter" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, totalAnimales), /* @__PURE__ */ React.createElement("div", { className: "l" }, "animales")), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      className: "theme-btn",
+      onClick: toggleTheme,
+      "aria-label": theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"
+    },
+    theme === "dark" ? "\u2600" : "\u263E"
+  )), /* @__PURE__ */ React.createElement("div", { className: "tabs" }, /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "cargar" ? "active" : ""}`, onClick: () => setTab("cargar") }, "Cargar"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "resumen" ? "active" : ""}`, onClick: () => setTab("resumen") }, "Resumen"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "buscar" ? "active" : ""}`, onClick: () => setTab("buscar") }, "Buscar")), loading ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Cargando registros\u2026") : /* @__PURE__ */ React.createElement(React.Fragment, null, tab === "cargar" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, editingLoteId && /* @__PURE__ */ React.createElement("div", { className: "edit-banner" }, "Editando registro", /* @__PURE__ */ React.createElement("button", { type: "button", className: "link-btn", onClick: handleCancelarEdicion }, "Cancelar")), /* @__PURE__ */ React.createElement("form", { onSubmit: handleGuardar }, /* @__PURE__ */ React.createElement("div", { className: "row2" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", null, "Fecha"), /* @__PURE__ */ React.createElement("input", { type: "date", value: fecha, onChange: (e) => setFecha(e.target.value) })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", null, "Cantidad de animales"), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "number",
