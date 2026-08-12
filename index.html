@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
 <title>Registro Mangas GD</title>
 <meta name="description" content="Registro de trabajo de corral con ganado" />
 
@@ -42,4 +45,29 @@
       },
       set: function (key, value, shared) {
         return Promise.resolve().then(function () {
-          window.localStorage.setItem
+          window.localStorage.setItem(PREFIX + key, value);
+          return { key: key, value: value, shared: !!shared };
+        });
+      },
+      delete: function (key, shared) {
+        return Promise.resolve().then(function () {
+          window.localStorage.removeItem(PREFIX + key);
+          return { key: key, deleted: true, shared: !!shared };
+        });
+      },
+      list: function (prefix, shared) {
+        return Promise.resolve().then(function () {
+          var keys = Object.keys(window.localStorage)
+            .filter(function (k) { return k.indexOf(PREFIX) === 0; })
+            .map(function (k) { return k.slice(PREFIX.length); })
+            .filter(function (k) { return !prefix || k.indexOf(prefix) === 0; });
+          return { keys: keys, prefix: prefix, shared: !!shared };
+        });
+      },
+    };
+  })();
+</script>
+
+<script src="app.js?v=4"></script>
+</body>
+</html>
