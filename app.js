@@ -85,7 +85,7 @@ function CorralApp() {
   const [tab, setTab] = useState("cargar");
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [writeNotice, setWriteNotice] = useState("");
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [editingLoteId, setEditingLoteId] = useState(null);
@@ -143,25 +143,29 @@ function CorralApp() {
     } catch (e) {
     }
   }
-  async function persist(next) {
+  function persist(next) {
     setEntries(next);
+    syncToCloud(next);
+  }
+  async function syncToCloud(next) {
     try {
       if (typeof window.db === "undefined") throw new Error("sin conexi\xF3n con la base");
       const escritura = window.db.collection("app").doc("registros").set({ value: JSON.stringify(next), actualizadoEn: Date.now() });
       const tiempoLimite = new Promise(
-        (_, reject) => setTimeout(() => reject(new Error("tiempo de espera agotado")), 1e4)
+        (_, reject) => setTimeout(() => reject(new Error("tiempo de espera agotado")), 2e4)
       );
       await Promise.race([escritura, tiempoLimite]);
+      setWriteNotice("");
     } catch (e) {
-      setError(
-        "Qued\xF3 guardado en este aparato, pero no se pudo confirmar en la nube (prob\xE1 con mejor se\xF1al). Los dem\xE1s aparatos todav\xEDa no lo van a ver."
+      setWriteNotice(
+        "Lo \xFAltimo que cargaste qued\xF3 guardado en este aparato, pero todav\xEDa no se confirm\xF3 en la nube (se\xF1al d\xE9bil). Los dem\xE1s aparatos no lo van a ver hasta que se confirme."
       );
     }
   }
   function toggleInsumo(item) {
     setInsumosSel((prev) => prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]);
   }
-  async function handleGuardar(e) {
+  function handleGuardar(e) {
     e.preventDefault();
     setError("");
     const cant = Number(cantidad);
@@ -175,7 +179,6 @@ function CorralApp() {
       setError("Eleg\xED al menos un insumo.");
       return;
     }
-    setSaving(true);
     const editando = !!editingLoteId;
     const loteId = editingLoteId || Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const nuevos = todosInsumos.map((ins, idx) => ({
@@ -189,8 +192,7 @@ function CorralApp() {
       observaciones: observaciones.trim()
     }));
     const base = editando ? entries.filter((en) => en.loteId !== loteId) : entries;
-    await persist([...base, ...nuevos]);
-    setSaving(false);
+    persist([...base, ...nuevos]);
     setToast(editando ? "Cambios guardados" : nuevos.length > 1 ? `${nuevos.length} insumos guardados` : "Registro guardado");
     setTimeout(() => setToast(""), 1800);
     if (editando) {
@@ -226,17 +228,17 @@ function CorralApp() {
     resetFormulario();
     setError("");
   }
-  async function handleEliminar(id) {
-    await persist(entries.filter((en) => en.id !== id));
+  function handleEliminar(id) {
+    persist(entries.filter((en) => en.id !== id));
   }
-  async function handleEliminarLote(loteId) {
+  function handleEliminarLote(loteId) {
     if (!window.confirm("\xBFEliminar este registro completo?")) return;
-    await persist(entries.filter((en) => en.loteId !== loteId));
+    persist(entries.filter((en) => en.loteId !== loteId));
     if (editingLoteId === loteId) handleCancelarEdicion();
   }
-  async function handleVaciar() {
+  function handleVaciar() {
     if (!window.confirm("\xBFVaciar todos los registros? No se puede deshacer.")) return;
-    await persist([]);
+    persist([]);
     handleCancelarEdicion();
   }
   const potrerosConocidos = useMemo(
@@ -290,7 +292,13 @@ function CorralApp() {
       (l) => !buscarPotrero.trim() || l.potrero.toLowerCase().includes(buscarPotrero.trim().toLowerCase())
     ).filter((l) => !buscarCategoria || l.categoria === buscarCategoria);
   }, [lotesOrdenados, buscarPotrero, buscarCategoria]);
-  function exportarExcel() {
+  async function exportarExcel() {
+    try {
+      await window.cargarXLSX();
+    } catch (e) {
+      setError("No se pudo cargar el componente de Excel. Revis\xE1 tu conexi\xF3n y prob\xE1 de nuevo.");
+      return;
+    }
     const registroData = [...entries].sort((a, b) => a.fecha.localeCompare(b.fecha) || a.id.localeCompare(b.id)).map((e) => ({
       Fecha: fechaLegible(e.fecha),
       Potrero: e.potrero,
@@ -726,7 +734,7 @@ function CorralApp() {
       "aria-label": theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"
     },
     theme === "dark" ? "\u2600" : "\u263E"
-  )), /* @__PURE__ */ React.createElement("div", { className: "tabs" }, /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "cargar" ? "active" : ""}`, onClick: () => setTab("cargar") }, "Cargar"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "resumen" ? "active" : ""}`, onClick: () => setTab("resumen") }, "Resumen"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "buscar" ? "active" : ""}`, onClick: () => setTab("buscar") }, "Buscar")), syncError && /* @__PURE__ */ React.createElement("div", { className: "error", style: { marginBottom: 14 } }, "Sin conexi\xF3n con la base compartida. Revis\xE1 tu internet \u2014 mientras tanto pod\xE9s seguir viendo lo \xFAltimo sincronizado, pero lo que cargues ahora podr\xEDa no guardarse."), loading ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Cargando registros\u2026") : /* @__PURE__ */ React.createElement(React.Fragment, null, tab === "cargar" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, editingLoteId && /* @__PURE__ */ React.createElement("div", { className: "edit-banner" }, "Editando registro", /* @__PURE__ */ React.createElement("button", { type: "button", className: "link-btn", onClick: handleCancelarEdicion }, "Cancelar")), /* @__PURE__ */ React.createElement("form", { onSubmit: handleGuardar }, /* @__PURE__ */ React.createElement("label", null, "Fecha"), /* @__PURE__ */ React.createElement("input", { type: "date", value: fecha, onChange: (e) => setFecha(e.target.value) }), /* @__PURE__ */ React.createElement("label", null, "Cantidad de animales"), /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement("div", { className: "tabs" }, /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "cargar" ? "active" : ""}`, onClick: () => setTab("cargar") }, "Cargar"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "resumen" ? "active" : ""}`, onClick: () => setTab("resumen") }, "Resumen"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "buscar" ? "active" : ""}`, onClick: () => setTab("buscar") }, "Buscar")), syncError && /* @__PURE__ */ React.createElement("div", { className: "error", style: { marginBottom: 14 } }, "Sin conexi\xF3n con la base compartida. Revis\xE1 tu internet \u2014 mientras tanto pod\xE9s seguir viendo lo \xFAltimo sincronizado, pero lo que cargues ahora podr\xEDa no guardarse."), !syncError && writeNotice && /* @__PURE__ */ React.createElement("div", { className: "error", style: { marginBottom: 14 } }, writeNotice), /* @__PURE__ */ React.createElement(React.Fragment, null, tab === "cargar" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, editingLoteId && /* @__PURE__ */ React.createElement("div", { className: "edit-banner" }, "Editando registro", /* @__PURE__ */ React.createElement("button", { type: "button", className: "link-btn", onClick: handleCancelarEdicion }, "Cancelar")), /* @__PURE__ */ React.createElement("form", { onSubmit: handleGuardar }, /* @__PURE__ */ React.createElement("label", null, "Fecha"), /* @__PURE__ */ React.createElement("input", { type: "date", value: fecha, onChange: (e) => setFecha(e.target.value) }), /* @__PURE__ */ React.createElement("label", null, "Cantidad de animales"), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "number",
@@ -761,7 +769,7 @@ function CorralApp() {
       value: observaciones,
       onChange: (e) => setObservaciones(e.target.value)
     }
-  ), error && /* @__PURE__ */ React.createElement("div", { className: "error" }, error), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", type: "submit", disabled: saving }, saving ? "Guardando\u2026" : editingLoteId ? "Guardar cambios" : "Guardar registro"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "\xDAltimos registros"), ultimosLotes.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Todav\xEDa no cargaste ning\xFAn registro.") : ultimosLotes.map((l) => /* @__PURE__ */ React.createElement(LoteCard, { lote: l, showDelete: true, key: l.loteId }))), entries.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { className: "btn btn-secondary", onClick: exportarExcel }, "Descargar Excel"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-danger", onClick: handleVaciar }, "Vaciar todos los registros"))), tab === "resumen" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "stat-grid" }, /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, lotes.length), /* @__PURE__ */ React.createElement("div", { className: "l" }, "Lotes trabajados")), /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, totalAnimales), /* @__PURE__ */ React.createElement("div", { className: "l" }, "Animales procesados")), /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, entries.length), /* @__PURE__ */ React.createElement("div", { className: "l" }, "Aplicaciones"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Por categor\xEDa"), porCategoria.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Sin datos todav\xEDa.") : /* @__PURE__ */ React.createElement("div", { className: "table-wrap" }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Categor\xEDa"), /* @__PURE__ */ React.createElement("th", null, "Animales"), /* @__PURE__ */ React.createElement("th", null, "Lotes"))), /* @__PURE__ */ React.createElement("tbody", null, porCategoria.map((r) => /* @__PURE__ */ React.createElement("tr", { key: r.categoria }, /* @__PURE__ */ React.createElement("td", null, r.categoria), /* @__PURE__ */ React.createElement("td", null, r.total), /* @__PURE__ */ React.createElement("td", null, r.count))))))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Por insumo"), porInsumo.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Sin datos todav\xEDa.") : /* @__PURE__ */ React.createElement("div", { className: "table-wrap" }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Insumo"), /* @__PURE__ */ React.createElement("th", null, "Animales"), /* @__PURE__ */ React.createElement("th", null, "Aplicaciones"))), /* @__PURE__ */ React.createElement("tbody", null, porInsumo.map((r) => /* @__PURE__ */ React.createElement("tr", { key: r.insumo }, /* @__PURE__ */ React.createElement("td", null, r.insumo), /* @__PURE__ */ React.createElement("td", null, r.total), /* @__PURE__ */ React.createElement("td", null, r.count))))))), entries.length > 0 && /* @__PURE__ */ React.createElement("button", { className: "btn btn-secondary", onClick: exportarExcel }, "Descargar Excel")), tab === "buscar" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("label", null, "Potrero"), /* @__PURE__ */ React.createElement(
+  ), error && /* @__PURE__ */ React.createElement("div", { className: "error" }, error), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", type: "submit" }, editingLoteId ? "Guardar cambios" : "Guardar registro"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "\xDAltimos registros"), ultimosLotes.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, loading ? "Sincronizando\u2026" : "Todav\xEDa no cargaste ning\xFAn registro.") : ultimosLotes.map((l) => /* @__PURE__ */ React.createElement(LoteCard, { lote: l, showDelete: true, key: l.loteId }))), entries.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { className: "btn btn-secondary", onClick: exportarExcel }, "Descargar Excel"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-danger", onClick: handleVaciar }, "Vaciar todos los registros"))), tab === "resumen" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "stat-grid" }, /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, lotes.length), /* @__PURE__ */ React.createElement("div", { className: "l" }, "Lotes trabajados")), /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, totalAnimales), /* @__PURE__ */ React.createElement("div", { className: "l" }, "Animales procesados")), /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, entries.length), /* @__PURE__ */ React.createElement("div", { className: "l" }, "Aplicaciones"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Por categor\xEDa"), porCategoria.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Sin datos todav\xEDa.") : /* @__PURE__ */ React.createElement("div", { className: "table-wrap" }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Categor\xEDa"), /* @__PURE__ */ React.createElement("th", null, "Animales"), /* @__PURE__ */ React.createElement("th", null, "Lotes"))), /* @__PURE__ */ React.createElement("tbody", null, porCategoria.map((r) => /* @__PURE__ */ React.createElement("tr", { key: r.categoria }, /* @__PURE__ */ React.createElement("td", null, r.categoria), /* @__PURE__ */ React.createElement("td", null, r.total), /* @__PURE__ */ React.createElement("td", null, r.count))))))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Por insumo"), porInsumo.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Sin datos todav\xEDa.") : /* @__PURE__ */ React.createElement("div", { className: "table-wrap" }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Insumo"), /* @__PURE__ */ React.createElement("th", null, "Animales"), /* @__PURE__ */ React.createElement("th", null, "Aplicaciones"))), /* @__PURE__ */ React.createElement("tbody", null, porInsumo.map((r) => /* @__PURE__ */ React.createElement("tr", { key: r.insumo }, /* @__PURE__ */ React.createElement("td", null, r.insumo), /* @__PURE__ */ React.createElement("td", null, r.total), /* @__PURE__ */ React.createElement("td", null, r.count))))))), entries.length > 0 && /* @__PURE__ */ React.createElement("button", { className: "btn btn-secondary", onClick: exportarExcel }, "Descargar Excel")), tab === "buscar" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("label", null, "Potrero"), /* @__PURE__ */ React.createElement(
     "input",
     {
       list: "potreros-list-buscar",

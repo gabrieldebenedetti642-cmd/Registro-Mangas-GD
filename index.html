@@ -24,7 +24,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
@@ -45,13 +44,28 @@
       appId: "1:479476444841:web:a31f8573b337e183afc3b8"
     });
     window.db = firebase.firestore();
-    // Ayuda a que la conexión ande mejor en internet lenta o inestable (rural, celular).
-    window.db.settings({ experimentalAutoDetectLongPolling: true });
+    // Ayuda a que la conexión ande mejor en internet lenta, inestable o restringida
+    // (rural, celular): va directo a long-polling en vez de perder tiempo probando
+    // WebSockets primero.
+    window.db.settings({ experimentalForceLongPolling: true });
   } catch (e) {
     // Si Firebase no llegó a cargar (por ejemplo sin conexión), seguimos sin cortar
     // la página: la app arranca igual y muestra su propio aviso de "sin conexión".
     window.db = undefined;
   }
+
+  // La librería para generar el Excel es pesada, así que no se carga hasta que
+  // realmente se necesita (al tocar "Descargar Excel"), para que la app abra rápido.
+  window.cargarXLSX = function () {
+    if (window.XLSX) return Promise.resolve();
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = function () { resolve(); };
+      s.onerror = function () { reject(new Error('no se pudo cargar el componente de Excel')); };
+      document.head.appendChild(s);
+    });
+  };
 
   // El tema (claro/oscuro) es una preferencia de cada aparato, no se comparte:
   // se guarda en localStorage del navegador, no en la base compartida.
@@ -89,6 +103,6 @@
   })();
 </script>
 
-<script src="app.js?v=10"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>
