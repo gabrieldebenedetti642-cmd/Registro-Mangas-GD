@@ -90,6 +90,7 @@ function CorralApp() {
   const [toast, setToast] = useState("");
   const [editingLoteId, setEditingLoteId] = useState(null);
   const [theme, setTheme] = useState("dark");
+  const [syncError, setSyncError] = useState(false);
   const [fecha, setFecha] = useState(hoyISO());
   const [potrero, setPotrero] = useState("");
   const [categoria, setCategoria] = useState("");
@@ -100,20 +101,27 @@ function CorralApp() {
   const [buscarPotrero, setBuscarPotrero] = useState("");
   const [buscarCategoria, setBuscarCategoria] = useState("");
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await window.storage.get("registros", false);
-        setEntries(res && res.value ? JSON.parse(res.value) : []);
-      } catch (e) {
-        setEntries([]);
+    setSyncError(false);
+    const unsub = db.collection("app").doc("registros").onSnapshot(
+      (doc) => {
+        const data = doc.exists ? doc.data() : null;
+        setEntries(data && data.value ? JSON.parse(data.value) : []);
+        setLoading(false);
+        setSyncError(false);
+      },
+      (e) => {
+        setSyncError(true);
+        setLoading(false);
       }
+    );
+    (async () => {
       try {
         const t = await window.storage.get("tema", false);
         if (t && t.value) setTheme(t.value);
       } catch (e) {
       }
-      setLoading(false);
     })();
+    return () => unsub();
   }, []);
   async function toggleTheme() {
     const next = theme === "dark" ? "light" : "dark";
@@ -126,9 +134,9 @@ function CorralApp() {
   async function persist(next) {
     setEntries(next);
     try {
-      await window.storage.set("registros", JSON.stringify(next), false);
+      await db.collection("app").doc("registros").set({ value: JSON.stringify(next), actualizadoEn: Date.now() });
     } catch (e) {
-      setError("No se pudo guardar el registro. Prob\xE1 de nuevo.");
+      setError("No se pudo sincronizar el registro. Revis\xE1 la conexi\xF3n y prob\xE1 de nuevo.");
     }
   }
   function toggleInsumo(item) {
@@ -699,7 +707,7 @@ function CorralApp() {
       "aria-label": theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"
     },
     theme === "dark" ? "\u2600" : "\u263E"
-  )), /* @__PURE__ */ React.createElement("div", { className: "tabs" }, /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "cargar" ? "active" : ""}`, onClick: () => setTab("cargar") }, "Cargar"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "resumen" ? "active" : ""}`, onClick: () => setTab("resumen") }, "Resumen"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "buscar" ? "active" : ""}`, onClick: () => setTab("buscar") }, "Buscar")), loading ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Cargando registros\u2026") : /* @__PURE__ */ React.createElement(React.Fragment, null, tab === "cargar" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, editingLoteId && /* @__PURE__ */ React.createElement("div", { className: "edit-banner" }, "Editando registro", /* @__PURE__ */ React.createElement("button", { type: "button", className: "link-btn", onClick: handleCancelarEdicion }, "Cancelar")), /* @__PURE__ */ React.createElement("form", { onSubmit: handleGuardar }, /* @__PURE__ */ React.createElement("label", null, "Fecha"), /* @__PURE__ */ React.createElement("input", { type: "date", value: fecha, onChange: (e) => setFecha(e.target.value) }), /* @__PURE__ */ React.createElement("label", null, "Cantidad de animales"), /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement("div", { className: "tabs" }, /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "cargar" ? "active" : ""}`, onClick: () => setTab("cargar") }, "Cargar"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "resumen" ? "active" : ""}`, onClick: () => setTab("resumen") }, "Resumen"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "buscar" ? "active" : ""}`, onClick: () => setTab("buscar") }, "Buscar")), syncError && /* @__PURE__ */ React.createElement("div", { className: "error", style: { marginBottom: 14 } }, "Sin conexi\xF3n con la base compartida. Revis\xE1 tu internet \u2014 mientras tanto pod\xE9s seguir viendo lo \xFAltimo sincronizado, pero lo que cargues ahora podr\xEDa no guardarse."), loading ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Cargando registros\u2026") : /* @__PURE__ */ React.createElement(React.Fragment, null, tab === "cargar" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, editingLoteId && /* @__PURE__ */ React.createElement("div", { className: "edit-banner" }, "Editando registro", /* @__PURE__ */ React.createElement("button", { type: "button", className: "link-btn", onClick: handleCancelarEdicion }, "Cancelar")), /* @__PURE__ */ React.createElement("form", { onSubmit: handleGuardar }, /* @__PURE__ */ React.createElement("label", null, "Fecha"), /* @__PURE__ */ React.createElement("input", { type: "date", value: fecha, onChange: (e) => setFecha(e.target.value) }), /* @__PURE__ */ React.createElement("label", null, "Cantidad de animales"), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "number",
