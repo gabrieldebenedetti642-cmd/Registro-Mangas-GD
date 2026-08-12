@@ -42,29 +42,4 @@
       },
       set: function (key, value, shared) {
         return Promise.resolve().then(function () {
-          window.localStorage.setItem(PREFIX + key, value);
-          return { key: key, value: value, shared: !!shared };
-        });
-      },
-      delete: function (key, shared) {
-        return Promise.resolve().then(function () {
-          window.localStorage.removeItem(PREFIX + key);
-          return { key: key, deleted: true, shared: !!shared };
-        });
-      },
-      list: function (prefix, shared) {
-        return Promise.resolve().then(function () {
-          var keys = Object.keys(window.localStorage)
-            .filter(function (k) { return k.indexOf(PREFIX) === 0; })
-            .map(function (k) { return k.slice(PREFIX.length); })
-            .filter(function (k) { return !prefix || k.indexOf(prefix) === 0; });
-          return { keys: keys, prefix: prefix, shared: !!shared };
-        });
-      },
-    };
-  })();
-</script>
-
-<script src="app.js"></script>
-</body>
-</html>
+          window.localStorage.setItem
