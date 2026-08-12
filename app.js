@@ -147,9 +147,15 @@ function CorralApp() {
     setEntries(next);
     try {
       if (typeof window.db === "undefined") throw new Error("sin conexi\xF3n con la base");
-      await window.db.collection("app").doc("registros").set({ value: JSON.stringify(next), actualizadoEn: Date.now() });
+      const escritura = window.db.collection("app").doc("registros").set({ value: JSON.stringify(next), actualizadoEn: Date.now() });
+      const tiempoLimite = new Promise(
+        (_, reject) => setTimeout(() => reject(new Error("tiempo de espera agotado")), 1e4)
+      );
+      await Promise.race([escritura, tiempoLimite]);
     } catch (e) {
-      setError("No se pudo sincronizar el registro. Revis\xE1 la conexi\xF3n y prob\xE1 de nuevo.");
+      setError(
+        "Qued\xF3 guardado en este aparato, pero no se pudo confirmar en la nube (prob\xE1 con mejor se\xF1al). Los dem\xE1s aparatos todav\xEDa no lo van a ver."
+      );
     }
   }
   function toggleInsumo(item) {

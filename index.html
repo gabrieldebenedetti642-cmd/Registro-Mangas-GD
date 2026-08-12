@@ -45,6 +45,8 @@
       appId: "1:479476444841:web:a31f8573b337e183afc3b8"
     });
     window.db = firebase.firestore();
+    // Ayuda a que la conexión ande mejor en internet lenta o inestable (rural, celular).
+    window.db.settings({ experimentalAutoDetectLongPolling: true });
   } catch (e) {
     // Si Firebase no llegó a cargar (por ejemplo sin conexión), seguimos sin cortar
     // la página: la app arranca igual y muestra su propio aviso de "sin conexión".
@@ -87,6 +89,6 @@
   })();
 </script>
 
-<script src="app.js?v=9"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>
