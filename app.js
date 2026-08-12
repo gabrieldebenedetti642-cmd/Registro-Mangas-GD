@@ -459,6 +459,12 @@ function CorralApp() {
           outline-offset: 1px;
         }
         textarea { resize: vertical; min-height: 60px; }
+        input[type="date"] {
+          text-align: left;
+        }
+        input[type="date"]::-webkit-date-and-time-value {
+          text-align: left;
+        }
         .row2 {
           display: grid;
           grid-template-columns: 1fr 1fr;
