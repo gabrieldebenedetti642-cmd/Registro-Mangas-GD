@@ -102,18 +102,30 @@ function CorralApp() {
   const [buscarCategoria, setBuscarCategoria] = useState("");
   useEffect(() => {
     setSyncError(false);
-    const unsub = db.collection("app").doc("registros").onSnapshot(
-      (doc) => {
-        const data = doc.exists ? doc.data() : null;
-        setEntries(data && data.value ? JSON.parse(data.value) : []);
-        setLoading(false);
-        setSyncError(false);
-      },
-      (e) => {
-        setSyncError(true);
-        setLoading(false);
-      }
-    );
+    if (typeof window.db === "undefined") {
+      setSyncError(true);
+      setLoading(false);
+      return;
+    }
+    let unsub = () => {
+    };
+    try {
+      unsub = window.db.collection("app").doc("registros").onSnapshot(
+        (doc) => {
+          const data = doc.exists ? doc.data() : null;
+          setEntries(data && data.value ? JSON.parse(data.value) : []);
+          setLoading(false);
+          setSyncError(false);
+        },
+        (e) => {
+          setSyncError(true);
+          setLoading(false);
+        }
+      );
+    } catch (e) {
+      setSyncError(true);
+      setLoading(false);
+    }
     (async () => {
       try {
         const t = await window.storage.get("tema", false);
@@ -134,7 +146,8 @@ function CorralApp() {
   async function persist(next) {
     setEntries(next);
     try {
-      await db.collection("app").doc("registros").set({ value: JSON.stringify(next), actualizadoEn: Date.now() });
+      if (typeof window.db === "undefined") throw new Error("sin conexi\xF3n con la base");
+      await window.db.collection("app").doc("registros").set({ value: JSON.stringify(next), actualizadoEn: Date.now() });
     } catch (e) {
       setError("No se pudo sincronizar el registro. Revis\xE1 la conexi\xF3n y prob\xE1 de nuevo.");
     }
