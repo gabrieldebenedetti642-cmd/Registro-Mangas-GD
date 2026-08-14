@@ -32,7 +32,7 @@ const INSUMO_GRUPOS = [
   },
   {
     grupo: "Manejo",
-    items: ["Marca", "Caravana mosca"]
+    items: ["Marca", "Caravana mosca", "Pesaje"]
   }
 ];
 const ALL_INSUMOS = INSUMO_GRUPOS.flatMap((g) => g.items);
