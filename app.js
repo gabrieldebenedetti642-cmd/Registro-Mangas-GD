@@ -36,6 +36,8 @@ const INSUMO_GRUPOS = [
   }
 ];
 const ALL_INSUMOS = INSUMO_GRUPOS.flatMap((g) => g.items);
+const MOTIVOS_ENTRADA = ["Nacimiento", "Compra", "Recategorizaci\xF3n", "Otro"];
+const MOTIVOS_SALIDA = ["Muerte", "Venta", "Recategorizaci\xF3n", "Otro"];
 const CATEGORIA_COLOR = {
   "Vacas de cr\xEDa": "#C98A3D",
   "Vacas descarte": "#9C6B2C",
@@ -53,6 +55,10 @@ function hoyISO() {
 function fechaLegible(iso) {
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
+}
+function mesLegible(ym) {
+  const [y, m] = ym.split("-");
+  return `${m}/${y}`;
 }
 function GDMark() {
   return /* @__PURE__ */ React.createElement("div", { className: "mark" }, /* @__PURE__ */ React.createElement("svg", { width: "46", height: "44", viewBox: "0 0 46 44" }, /* @__PURE__ */ React.createElement("defs", null, /* @__PURE__ */ React.createElement("linearGradient", { id: "greenGrad", x1: "0.1", y1: "0", x2: "0.5", y2: "1" }, /* @__PURE__ */ React.createElement("stop", { offset: "0%", stopColor: "#3C8B63" }), /* @__PURE__ */ React.createElement("stop", { offset: "45%", stopColor: "#1F5B40" }), /* @__PURE__ */ React.createElement("stop", { offset: "100%", stopColor: "#123526" })), /* @__PURE__ */ React.createElement("linearGradient", { id: "goldGrad", x1: "0", y1: "0", x2: "0.15", y2: "1" }, /* @__PURE__ */ React.createElement("stop", { offset: "0%", stopColor: "#FCE7AC" }), /* @__PURE__ */ React.createElement("stop", { offset: "40%", stopColor: "#D8A53C" }), /* @__PURE__ */ React.createElement("stop", { offset: "100%", stopColor: "#8A6318" })), /* @__PURE__ */ React.createElement("clipPath", { id: "letters" }, /* @__PURE__ */ React.createElement("text", { x: "7", y: "32.5", fontFamily: "Arial, sans-serif", fontWeight: "900", fontSize: "26", letterSpacing: "-5.3" }, "G"), /* @__PURE__ */ React.createElement("text", { x: "21", y: "32.5", fontFamily: "Arial, sans-serif", fontWeight: "900", fontSize: "26", letterSpacing: "-5.3" }, "D"))), /* @__PURE__ */ React.createElement("path", { d: "M17,3 a7,7 0 0 1 12,0 L29,13 Q29,17 23,17 Q17,17 17,13 Z", fill: "url(#greenGrad)" }), /* @__PURE__ */ React.createElement("circle", { cx: "23", cy: "8.5", r: "3.1", fill: "var(--bg)" }), /* @__PURE__ */ React.createElement("circle", { cx: "23", cy: "8.5", r: "3.1", fill: "none", stroke: "#0E2318", strokeWidth: "0.6" }), /* @__PURE__ */ React.createElement("rect", { x: "2", y: "14", width: "42", height: "28", rx: "7", fill: "url(#greenGrad)" }), /* @__PURE__ */ React.createElement(
@@ -100,6 +106,22 @@ function CorralApp() {
   const [observaciones, setObservaciones] = useState("");
   const [buscarPotrero, setBuscarPotrero] = useState("");
   const [buscarCategoria, setBuscarCategoria] = useState("");
+  const [stockBase, setStockBase] = useState(null);
+  const [movimientos, setMovimientos] = useState([]);
+  const [stockLoading, setStockLoading] = useState(true);
+  const [stockSyncError, setStockSyncError] = useState(false);
+  const [mostrarFormStock, setMostrarFormStock] = useState(false);
+  const [mostrarFormMovimiento, setMostrarFormMovimiento] = useState(false);
+  const [stockValores, setStockValores] = useState({});
+  const [movFecha, setMovFecha] = useState(hoyISO());
+  const [movCategoria, setMovCategoria] = useState("");
+  const [movTipo, setMovTipo] = useState("entrada");
+  const [movCantidad, setMovCantidad] = useState("");
+  const [movMotivo, setMovMotivo] = useState("");
+  const [movOtro, setMovOtro] = useState("");
+  const [movObservaciones, setMovObservaciones] = useState("");
+  const [stockError, setStockError] = useState("");
+  const [categoriaVerMes, setCategoriaVerMes] = useState("");
   useEffect(() => {
     setSyncError(false);
     if (typeof window.db === "undefined") {
@@ -135,6 +157,36 @@ function CorralApp() {
     })();
     return () => unsub();
   }, []);
+  useEffect(() => {
+    setStockSyncError(false);
+    if (typeof window.db === "undefined") {
+      setStockSyncError(true);
+      setStockLoading(false);
+      return;
+    }
+    let unsub = () => {
+    };
+    try {
+      unsub = window.db.collection("app").doc("stock").onSnapshot(
+        (doc) => {
+          const data = doc.exists ? doc.data() : null;
+          const parsed = data && data.value ? JSON.parse(data.value) : null;
+          setStockBase(parsed && parsed.stockBase ? parsed.stockBase : null);
+          setMovimientos(parsed && parsed.movimientos ? parsed.movimientos : []);
+          setStockLoading(false);
+          setStockSyncError(false);
+        },
+        (e) => {
+          setStockSyncError(true);
+          setStockLoading(false);
+        }
+      );
+    } catch (e) {
+      setStockSyncError(true);
+      setStockLoading(false);
+    }
+    return () => unsub();
+  }, []);
   async function toggleTheme() {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
@@ -161,6 +213,74 @@ function CorralApp() {
         "Lo \xFAltimo que cargaste qued\xF3 guardado en este aparato, pero todav\xEDa no se confirm\xF3 en la nube (se\xF1al d\xE9bil). Los dem\xE1s aparatos no lo van a ver hasta que se confirme."
       );
     }
+  }
+  function persistStock(next) {
+    setStockBase(next.stockBase);
+    setMovimientos(next.movimientos);
+    syncStockToCloud(next);
+  }
+  async function syncStockToCloud(next) {
+    try {
+      if (typeof window.db === "undefined") throw new Error("sin conexi\xF3n con la base");
+      const escritura = window.db.collection("app").doc("stock").set({ value: JSON.stringify(next), actualizadoEn: Date.now() });
+      const tiempoLimite = new Promise(
+        (_, reject) => setTimeout(() => reject(new Error("tiempo de espera agotado")), 2e4)
+      );
+      await Promise.race([escritura, tiempoLimite]);
+      setWriteNotice("");
+    } catch (e) {
+      setWriteNotice(
+        "El stock qued\xF3 guardado en este aparato, pero todav\xEDa no se confirm\xF3 en la nube (se\xF1al d\xE9bil). Los dem\xE1s aparatos no lo van a ver hasta que se confirme."
+      );
+    }
+  }
+  function handleGuardarStockInicial(e) {
+    e.preventDefault();
+    const valores = {};
+    CATEGORIAS.forEach((c) => {
+      const v = Number(stockValores[c]);
+      if (stockValores[c] !== void 0 && stockValores[c] !== "" && v >= 0) valores[c] = v;
+    });
+    const nuevoBase = { fecha: hoyISO(), valores };
+    persistStock({ stockBase: nuevoBase, movimientos });
+    setMostrarFormStock(false);
+    setToast("Stock guardado");
+    setTimeout(() => setToast(""), 1800);
+  }
+  function handleAgregarMovimiento(e) {
+    e.preventDefault();
+    setStockError("");
+    const cant = Number(movCantidad);
+    if (!movCategoria || !movCantidad || cant <= 0) {
+      setStockError("Complet\xE1 categor\xEDa y cantidad.");
+      return;
+    }
+    const motivoFinal = movMotivo === "Otro" ? movOtro.trim() : movMotivo;
+    if (!motivoFinal) {
+      setStockError("Eleg\xED o escrib\xED un motivo.");
+      return;
+    }
+    const nuevoMov = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      fecha: movFecha,
+      categoria: movCategoria,
+      tipo: movTipo,
+      cantidad: cant,
+      motivo: motivoFinal,
+      observaciones: movObservaciones.trim()
+    };
+    const nuevos = [...movimientos, nuevoMov];
+    persistStock({ stockBase, movimientos: nuevos });
+    setToast("Movimiento guardado");
+    setTimeout(() => setToast(""), 1800);
+    setMovCategoria("");
+    setMovCantidad("");
+    setMovMotivo("");
+    setMovOtro("");
+    setMovObservaciones("");
+  }
+  function handleEliminarMovimiento(id) {
+    persistStock({ stockBase, movimientos: movimientos.filter((m) => m.id !== id) });
   }
   function toggleInsumo(item) {
     setInsumosSel((prev) => prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]);
@@ -283,6 +403,39 @@ function CorralApp() {
     });
     return Object.entries(map).map(([ins, v]) => ({ insumo: ins, ...v })).sort((a, b) => b.total - a.total);
   }, [entries]);
+  const stockActual = useMemo(() => {
+    const base = stockBase && stockBase.valores || {};
+    const map = {};
+    CATEGORIAS.forEach((c) => {
+      map[c] = base[c] || 0;
+    });
+    movimientos.forEach((m) => {
+      map[m.categoria] = (map[m.categoria] || 0) + (m.tipo === "entrada" ? m.cantidad : -m.cantidad);
+    });
+    return map;
+  }, [stockBase, movimientos]);
+  const totalStock = useMemo(() => CATEGORIAS.reduce((s, c) => s + (stockActual[c] || 0), 0), [stockActual]);
+  const movimientosOrdenados = useMemo(
+    () => [...movimientos].sort((a, b) => b.fecha.localeCompare(a.fecha) || b.id.localeCompare(a.id)),
+    [movimientos]
+  );
+  const evolucionMensual = useMemo(() => {
+    if (!categoriaVerMes) return [];
+    const baseCantidad = stockBase && stockBase.valores && stockBase.valores[categoriaVerMes] || 0;
+    const porMes = {};
+    movimientos.filter((m) => m.categoria === categoriaVerMes).forEach((m) => {
+      const mes = m.fecha.slice(0, 7);
+      if (!porMes[mes]) porMes[mes] = { entradas: 0, salidas: 0 };
+      if (m.tipo === "entrada") porMes[mes].entradas += m.cantidad;
+      else porMes[mes].salidas += m.cantidad;
+    });
+    const meses = Object.keys(porMes).sort();
+    let saldo = baseCantidad;
+    return meses.map((mes) => {
+      saldo += porMes[mes].entradas - porMes[mes].salidas;
+      return { mes, entradas: porMes[mes].entradas, salidas: porMes[mes].salidas, saldo };
+    });
+  }, [movimientos, stockBase, categoriaVerMes]);
   const lotesOrdenados = useMemo(
     () => [...lotes].sort((a, b) => b.fecha.localeCompare(a.fecha) || b.loteId.localeCompare(a.loteId)),
     [lotes]
@@ -332,9 +485,29 @@ function CorralApp() {
     ];
     const wsResumen = XLSX.utils.aoa_to_sheet(resumenRows);
     wsResumen["!cols"] = [{ wch: 26 }, { wch: 24 }, { wch: 16 }];
+    const stockRows = [
+      ["Stock actual"],
+      ["Categor\xEDa", "Cantidad"],
+      ...CATEGORIAS.map((c) => [c, stockActual[c] || 0]),
+      ["Total", totalStock],
+      [],
+      ["Movimientos"],
+      ["Fecha", "Categor\xEDa", "Tipo", "Cantidad", "Motivo", "Observaciones"],
+      ...[...movimientos].sort((a, b) => a.fecha.localeCompare(b.fecha) || a.id.localeCompare(b.id)).map((m) => [
+        fechaLegible(m.fecha),
+        m.categoria,
+        m.tipo === "entrada" ? "Entrada" : "Salida",
+        m.cantidad,
+        m.motivo,
+        m.observaciones
+      ])
+    ];
+    const wsStock = XLSX.utils.aoa_to_sheet(stockRows);
+    wsStock["!cols"] = [{ wch: 11 }, { wch: 16 }, { wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 30 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, wsRegistro, "Registro");
     XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
+    XLSX.utils.book_append_sheet(wb, wsStock, "Stock");
     XLSX.writeFile(wb, `mangas_gd_${hoyISO()}.xlsx`);
   }
   function LoteCard({ lote, showDelete }) {
@@ -769,7 +942,102 @@ function CorralApp() {
       value: observaciones,
       onChange: (e) => setObservaciones(e.target.value)
     }
-  ), error && /* @__PURE__ */ React.createElement("div", { className: "error" }, error), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", type: "submit" }, editingLoteId ? "Guardar cambios" : "Guardar registro"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "\xDAltimos registros"), ultimosLotes.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, loading ? "Sincronizando\u2026" : "Todav\xEDa no cargaste ning\xFAn registro.") : ultimosLotes.map((l) => /* @__PURE__ */ React.createElement(LoteCard, { lote: l, showDelete: true, key: l.loteId }))), entries.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { className: "btn btn-secondary", onClick: exportarExcel }, "Descargar Excel"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-danger", onClick: handleVaciar }, "Vaciar todos los registros"))), tab === "resumen" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "stat-grid" }, /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, lotes.length), /* @__PURE__ */ React.createElement("div", { className: "l" }, "Lotes trabajados")), /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, totalAnimales), /* @__PURE__ */ React.createElement("div", { className: "l" }, "Animales procesados")), /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, entries.length), /* @__PURE__ */ React.createElement("div", { className: "l" }, "Aplicaciones"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Por categor\xEDa"), porCategoria.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Sin datos todav\xEDa.") : /* @__PURE__ */ React.createElement("div", { className: "table-wrap" }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Categor\xEDa"), /* @__PURE__ */ React.createElement("th", null, "Animales"), /* @__PURE__ */ React.createElement("th", null, "Lotes"))), /* @__PURE__ */ React.createElement("tbody", null, porCategoria.map((r) => /* @__PURE__ */ React.createElement("tr", { key: r.categoria }, /* @__PURE__ */ React.createElement("td", null, r.categoria), /* @__PURE__ */ React.createElement("td", null, r.total), /* @__PURE__ */ React.createElement("td", null, r.count))))))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Por insumo"), porInsumo.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Sin datos todav\xEDa.") : /* @__PURE__ */ React.createElement("div", { className: "table-wrap" }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Insumo"), /* @__PURE__ */ React.createElement("th", null, "Animales"), /* @__PURE__ */ React.createElement("th", null, "Aplicaciones"))), /* @__PURE__ */ React.createElement("tbody", null, porInsumo.map((r) => /* @__PURE__ */ React.createElement("tr", { key: r.insumo }, /* @__PURE__ */ React.createElement("td", null, r.insumo), /* @__PURE__ */ React.createElement("td", null, r.total), /* @__PURE__ */ React.createElement("td", null, r.count))))))), entries.length > 0 && /* @__PURE__ */ React.createElement("button", { className: "btn btn-secondary", onClick: exportarExcel }, "Descargar Excel")), tab === "buscar" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("label", null, "Potrero"), /* @__PURE__ */ React.createElement(
+  ), error && /* @__PURE__ */ React.createElement("div", { className: "error" }, error), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", type: "submit" }, editingLoteId ? "Guardar cambios" : "Guardar registro"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "\xDAltimos registros"), ultimosLotes.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, loading ? "Sincronizando\u2026" : "Todav\xEDa no cargaste ning\xFAn registro.") : ultimosLotes.map((l) => /* @__PURE__ */ React.createElement(LoteCard, { lote: l, showDelete: true, key: l.loteId }))), entries.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { className: "btn btn-secondary", onClick: exportarExcel }, "Descargar Excel"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-danger", onClick: handleVaciar }, "Vaciar todos los registros"))), tab === "resumen" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Stock actual"), stockSyncError && /* @__PURE__ */ React.createElement("div", { className: "error", style: { marginBottom: 12 } }, "Sin conexi\xF3n con la base compartida para el stock."), /* @__PURE__ */ React.createElement("div", { className: "table-wrap" }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Categor\xEDa"), /* @__PURE__ */ React.createElement("th", null, "Cantidad"))), /* @__PURE__ */ React.createElement("tbody", null, CATEGORIAS.map((c) => /* @__PURE__ */ React.createElement("tr", { key: c }, /* @__PURE__ */ React.createElement("td", null, c), /* @__PURE__ */ React.createElement("td", null, stockActual[c] || 0))), /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("td", { style: { fontWeight: 700 } }, "Total"), /* @__PURE__ */ React.createElement("td", { style: { fontWeight: 700 } }, totalStock))))), stockBase && /* @__PURE__ */ React.createElement("div", { className: "l2", style: { marginTop: 8 } }, "Base cargada el ", fechaLegible(stockBase.fecha)), /* @__PURE__ */ React.createElement("div", { className: "lote-actions", style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      className: "link-btn",
+      onClick: () => {
+        if (!mostrarFormStock) {
+          const iniciales = {};
+          CATEGORIAS.forEach((c) => {
+            const v = stockBase && stockBase.valores && stockBase.valores[c];
+            iniciales[c] = v ? String(v) : "";
+          });
+          setStockValores(iniciales);
+        }
+        setMostrarFormStock((v) => !v);
+        setMostrarFormMovimiento(false);
+      }
+    },
+    stockBase ? "Ajustar stock base" : "Cargar stock inicial"
+  ), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      className: "link-btn",
+      onClick: () => {
+        setMostrarFormMovimiento((v) => !v);
+        setMostrarFormStock(false);
+      }
+    },
+    "Registrar movimiento"
+  )), mostrarFormStock && /* @__PURE__ */ React.createElement("form", { onSubmit: handleGuardarStockInicial, style: { marginTop: 16 } }, /* @__PURE__ */ React.createElement("div", { className: "grupo-titulo" }, "Cantidad actual por categor\xEDa"), CATEGORIAS.map((c) => /* @__PURE__ */ React.createElement("div", { key: c }, /* @__PURE__ */ React.createElement("label", null, c), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "number",
+      min: "0",
+      inputMode: "numeric",
+      placeholder: "0",
+      value: stockValores[c] || "",
+      onChange: (e) => setStockValores((v) => ({ ...v, [c]: e.target.value }))
+    }
+  ))), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", type: "submit" }, "Guardar stock")), mostrarFormMovimiento && /* @__PURE__ */ React.createElement("form", { onSubmit: handleAgregarMovimiento, style: { marginTop: 16 } }, /* @__PURE__ */ React.createElement("label", null, "Fecha"), /* @__PURE__ */ React.createElement("input", { type: "date", value: movFecha, onChange: (e) => setMovFecha(e.target.value) }), /* @__PURE__ */ React.createElement("label", null, "Tipo"), /* @__PURE__ */ React.createElement("div", { className: "checks" }, /* @__PURE__ */ React.createElement("label", { className: `chip ${movTipo === "entrada" ? "checked" : ""}` }, /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "radio",
+      name: "movtipo",
+      checked: movTipo === "entrada",
+      onChange: () => {
+        setMovTipo("entrada");
+        setMovMotivo("");
+      }
+    }
+  ), "Entrada"), /* @__PURE__ */ React.createElement("label", { className: `chip ${movTipo === "salida" ? "checked" : ""}` }, /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "radio",
+      name: "movtipo",
+      checked: movTipo === "salida",
+      onChange: () => {
+        setMovTipo("salida");
+        setMovMotivo("");
+      }
+    }
+  ), "Salida")), /* @__PURE__ */ React.createElement("label", null, "Categor\xEDa"), /* @__PURE__ */ React.createElement("select", { value: movCategoria, onChange: (e) => setMovCategoria(e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Elegir categor\xEDa\u2026"), CATEGORIAS.map((c) => /* @__PURE__ */ React.createElement("option", { key: c, value: c }, c))), /* @__PURE__ */ React.createElement("label", null, "Cantidad"), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "number",
+      min: "1",
+      inputMode: "numeric",
+      placeholder: "0",
+      value: movCantidad,
+      onChange: (e) => setMovCantidad(e.target.value)
+    }
+  ), /* @__PURE__ */ React.createElement("label", null, "Motivo"), /* @__PURE__ */ React.createElement("select", { value: movMotivo, onChange: (e) => setMovMotivo(e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Elegir motivo\u2026"), (movTipo === "entrada" ? MOTIVOS_ENTRADA : MOTIVOS_SALIDA).map((m) => /* @__PURE__ */ React.createElement("option", { key: m, value: m }, m))), movMotivo === "Otro" && /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      style: { marginTop: 8 },
+      placeholder: "Especificar motivo",
+      value: movOtro,
+      onChange: (e) => setMovOtro(e.target.value)
+    }
+  ), /* @__PURE__ */ React.createElement("label", null, "Observaciones"), /* @__PURE__ */ React.createElement(
+    "textarea",
+    {
+      placeholder: "Opcional",
+      value: movObservaciones,
+      onChange: (e) => setMovObservaciones(e.target.value)
+    }
+  ), stockError && /* @__PURE__ */ React.createElement("div", { className: "error" }, stockError), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", type: "submit" }, "Guardar movimiento"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Evoluci\xF3n mensual"), /* @__PURE__ */ React.createElement("label", null, "Categor\xEDa"), /* @__PURE__ */ React.createElement("select", { value: categoriaVerMes, onChange: (e) => setCategoriaVerMes(e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Elegir categor\xEDa\u2026"), CATEGORIAS.map((c) => /* @__PURE__ */ React.createElement("option", { key: c, value: c }, c))), categoriaVerMes && (evolucionMensual.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Sin movimientos registrados para esta categor\xEDa.") : /* @__PURE__ */ React.createElement("div", { className: "table-wrap", style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Mes"), /* @__PURE__ */ React.createElement("th", null, "Entradas"), /* @__PURE__ */ React.createElement("th", null, "Salidas"), /* @__PURE__ */ React.createElement("th", null, "Saldo"))), /* @__PURE__ */ React.createElement("tbody", null, evolucionMensual.map((r) => /* @__PURE__ */ React.createElement("tr", { key: r.mes }, /* @__PURE__ */ React.createElement("td", null, mesLegible(r.mes)), /* @__PURE__ */ React.createElement("td", null, r.entradas), /* @__PURE__ */ React.createElement("td", null, r.salidas), /* @__PURE__ */ React.createElement("td", null, r.saldo)))))))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "\xDAltimos movimientos"), movimientosOrdenados.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, stockLoading ? "Sincronizando\u2026" : "Todav\xEDa no cargaste ning\xFAn movimiento.") : movimientosOrdenados.slice(0, 8).map((m) => /* @__PURE__ */ React.createElement("div", { className: "lote-card", key: m.id }, /* @__PURE__ */ React.createElement("div", { className: "lote-head" }, /* @__PURE__ */ React.createElement(
+    "span",
+    {
+      className: "tag",
+      style: { background: m.tipo === "entrada" ? "#7A9471" : "#B5533C" }
+    },
+    /* @__PURE__ */ React.createElement("span", { className: "dot" }),
+    m.tipo === "entrada" ? "Entrada" : "Salida"
+  ), /* @__PURE__ */ React.createElement("div", { className: "entry-main" }, /* @__PURE__ */ React.createElement("div", { className: "l1" }, m.categoria, " \xB7 ", m.cantidad, " cab."), /* @__PURE__ */ React.createElement("div", { className: "l2" }, fechaLegible(m.fecha), " \u2014 ", m.motivo, m.observaciones ? ` \xB7 ${m.observaciones}` : ""))), /* @__PURE__ */ React.createElement("div", { className: "lote-actions" }, /* @__PURE__ */ React.createElement("button", { type: "button", className: "link-btn danger", onClick: () => handleEliminarMovimiento(m.id) }, "Eliminar"))))), /* @__PURE__ */ React.createElement("div", { className: "stat-grid" }, /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, lotes.length), /* @__PURE__ */ React.createElement("div", { className: "l" }, "Lotes trabajados")), /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, totalAnimales), /* @__PURE__ */ React.createElement("div", { className: "l" }, "Animales procesados")), /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("div", { className: "n" }, entries.length), /* @__PURE__ */ React.createElement("div", { className: "l" }, "Aplicaciones"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Por categor\xEDa"), porCategoria.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Sin datos todav\xEDa.") : /* @__PURE__ */ React.createElement("div", { className: "table-wrap" }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Categor\xEDa"), /* @__PURE__ */ React.createElement("th", null, "Animales"), /* @__PURE__ */ React.createElement("th", null, "Lotes"))), /* @__PURE__ */ React.createElement("tbody", null, porCategoria.map((r) => /* @__PURE__ */ React.createElement("tr", { key: r.categoria }, /* @__PURE__ */ React.createElement("td", null, r.categoria), /* @__PURE__ */ React.createElement("td", null, r.total), /* @__PURE__ */ React.createElement("td", null, r.count))))))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Por insumo"), porInsumo.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Sin datos todav\xEDa.") : /* @__PURE__ */ React.createElement("div", { className: "table-wrap" }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Insumo"), /* @__PURE__ */ React.createElement("th", null, "Animales"), /* @__PURE__ */ React.createElement("th", null, "Aplicaciones"))), /* @__PURE__ */ React.createElement("tbody", null, porInsumo.map((r) => /* @__PURE__ */ React.createElement("tr", { key: r.insumo }, /* @__PURE__ */ React.createElement("td", null, r.insumo), /* @__PURE__ */ React.createElement("td", null, r.total), /* @__PURE__ */ React.createElement("td", null, r.count))))))), entries.length > 0 && /* @__PURE__ */ React.createElement("button", { className: "btn btn-secondary", onClick: exportarExcel }, "Descargar Excel")), tab === "buscar" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("label", null, "Potrero"), /* @__PURE__ */ React.createElement(
     "input",
     {
       list: "potreros-list-buscar",
