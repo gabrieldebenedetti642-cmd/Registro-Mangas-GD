@@ -13,7 +13,20 @@ const CATEGORIAS = [
 const INSUMO_GRUPOS = [
   {
     grupo: "Reproducci\xF3n",
-    items: ["IATF", "IATF dispositivos", "IATF retiro", "Inseminaci\xF3n", "Reproductiva", "Ecograf\xEDas"]
+    items: [
+      "IATF",
+      "IATF dispositivos",
+      "IATF retiro",
+      "Inseminaci\xF3n",
+      "Reproductiva",
+      "Ecograf\xEDas",
+      "Servicio",
+      "Parici\xF3n",
+      "Evaluaci\xF3n androl\xF3gica",
+      "DAO (actividad ov\xE1rica)",
+      "Pongo parche",
+      "Saco parche"
+    ]
   },
   {
     grupo: "Sanitario",
@@ -26,18 +39,155 @@ const INSUMO_GRUPOS = [
       "Cobre",
       "Brucelosis",
       "Ricoverm",
+      "Ricoverm doble dosis",
       "Leptospira",
-      "Carbuman"
+      "Carbuman",
+      "Ivermectina 1%",
+      "Ivermectina + saguaypicida",
+      "Ricobendazole",
+      "Cydectin",
+      "Queratoconjuntivitis"
     ]
   },
   {
     grupo: "Manejo",
-    items: ["Marca", "Caravana mosca", "Pesaje"]
+    items: ["Marca", "Caravana mosca", "Pesaje", "Destete", "Trazabilidad"]
   }
 ];
 const ALL_INSUMOS = INSUMO_GRUPOS.flatMap((g) => g.items);
+const MESES_NOMBRE = [
+  "enero",
+  "febrero",
+  "marzo",
+  "abril",
+  "mayo",
+  "junio",
+  "julio",
+  "agosto",
+  "setiembre",
+  "octubre",
+  "noviembre",
+  "diciembre"
+];
 const MOTIVOS_ENTRADA = ["Nacimiento", "Compra", "Recategorizaci\xF3n", "Otro"];
 const MOTIVOS_SALIDA = ["Muerte", "Venta", "Recategorizaci\xF3n", "Otro"];
+const ALIAS_ACTIVIDAD_INSUMO = {
+  Ecograf\u00EDa: "Ecograf\xEDas",
+  "Caravana mosca de los cuernos": "Caravana mosca",
+  "Pesaje general": "Pesaje"
+};
+function insumoDeActividad(actividad) {
+  return ALIAS_ACTIVIDAD_INSUMO[actividad] || actividad;
+}
+const PLAN_SANITARIO = [
+  { mes: 1, categorias: ["Vacas de cr\xEDa"], actividad: "Servicio", tipo: "Reproducci\xF3n", detalle: "Fin 31/01" },
+  { mes: 2, categorias: ["Novillos 1-2"], actividad: "Mancha y gangrena", tipo: "Vacuna", detalle: "" },
+  { mes: 2, categorias: ["Novillos 1-2"], actividad: "Nitroxinil", tipo: "Antiparasitario", detalle: "" },
+  { mes: 2, categorias: ["Novillos 2-3"], actividad: "Carbuman", tipo: "Vacuna", detalle: "" },
+  { mes: 2, categorias: ["Novillos 2-3"], actividad: "Clorsulon", tipo: "Antiparasitario", detalle: "" },
+  { mes: 2, categorias: ["Vaquillonas 1-2"], actividad: "Mancha y gangrena", tipo: "Vacuna", detalle: "" },
+  { mes: 2, categorias: ["Vaquillonas 1-2"], actividad: "Nitroxinil", tipo: "Antiparasitario", detalle: "" },
+  { mes: 2, categorias: ["Vaquillonas 2-3"], actividad: "Ecograf\xEDa", tipo: "Reproducci\xF3n", detalle: "1/02" },
+  { mes: 2, categorias: ["Vaquillonas 2-3"], actividad: "Aftosa", tipo: "Vacuna", detalle: "" },
+  { mes: 2, categorias: ["Vaquillonas 2-3"], actividad: "Carbuman", tipo: "Vacuna", detalle: "" },
+  { mes: 2, categorias: ["Vaquillonas 2-3"], actividad: "Leptospira", tipo: "Vacuna", detalle: "" },
+  { mes: 2, categorias: ["Vaquillonas 2-3"], actividad: "Nitroxinil", tipo: "Antiparasitario", detalle: "" },
+  { mes: 2, categorias: ["Toros"], actividad: "Carbuman", tipo: "Vacuna", detalle: "" },
+  { mes: 2, categorias: ["Toros"], actividad: "Nitroxinil", tipo: "Antiparasitario", detalle: "" },
+  { mes: 3, categorias: ["Terneros", "Terneras"], actividad: "Destete", tipo: "Manejo", detalle: "" },
+  { mes: 3, categorias: ["Terneros", "Terneras"], actividad: "Aftosa", tipo: "Vacuna", detalle: "" },
+  { mes: 3, categorias: ["Terneros", "Terneras"], actividad: "Cydectin", tipo: "Antiparasitario", detalle: "" },
+  { mes: 3, categorias: ["Novillos 1-2"], actividad: "Aftosa", tipo: "Vacuna", detalle: "" },
+  { mes: 3, categorias: ["Novillos 2-3"], actividad: "Aftosa", tipo: "Vacuna", detalle: "" },
+  { mes: 3, categorias: ["Vaquillonas 1-2"], actividad: "Aftosa", tipo: "Vacuna", detalle: "" },
+  { mes: 3, categorias: ["Vacas de cr\xEDa"], actividad: "Ecograf\xEDa", tipo: "Reproducci\xF3n", detalle: "10/03" },
+  { mes: 3, categorias: ["Vacas de cr\xEDa"], actividad: "Carbuman", tipo: "Vacuna", detalle: "" },
+  { mes: 3, categorias: ["Vacas de cr\xEDa"], actividad: "Leptospira", tipo: "Vacuna", detalle: "" },
+  { mes: 3, categorias: ["Vacas de cr\xEDa"], actividad: "Nitroxinil", tipo: "Antiparasitario", detalle: "" },
+  { mes: 3, categorias: ["Toros"], actividad: "Aftosa", tipo: "Vacuna", detalle: "" },
+  { mes: 3, categorias: CATEGORIAS, actividad: "Pesaje general", tipo: "Manejo", detalle: "Cierre de trimestre" },
+  { mes: 4, categorias: ["Vacas de cr\xEDa"], actividad: "Aftosa", tipo: "Vacuna", detalle: "" },
+  { mes: 5, categorias: ["Terneros", "Terneras"], actividad: "Marca", tipo: "Manejo", detalle: "" },
+  { mes: 5, categorias: ["Terneros", "Terneras"], actividad: "Brucelosis", tipo: "Vacuna", detalle: "" },
+  { mes: 5, categorias: ["Terneros", "Terneras"], actividad: "Ivermectina + saguaypicida", tipo: "Antiparasitario", detalle: "" },
+  { mes: 5, categorias: ["Vaquillonas 2-3"], actividad: "Leptospira", tipo: "Vacuna", detalle: "" },
+  { mes: 6, categorias: ["Terneros", "Terneras"], actividad: "Mancha y gangrena", tipo: "Vacuna", detalle: "" },
+  { mes: 6, categorias: ["Terneros", "Terneras"], actividad: "Ricobendazole", tipo: "Antiparasitario", detalle: "" },
+  { mes: 6, categorias: ["Novillos 1-2"], actividad: "Clorsulon", tipo: "Antiparasitario", detalle: "" },
+  { mes: 6, categorias: ["Novillos 1-2"], actividad: "Ivermectina 1%", tipo: "Antiparasitario", detalle: "" },
+  { mes: 6, categorias: ["Novillos 1-2"], actividad: "Ricoverm doble dosis", tipo: "Antiparasitario", detalle: "" },
+  { mes: 6, categorias: ["Novillos 1-2"], actividad: "Cobre", tipo: "Mineral", detalle: "" },
+  { mes: 6, categorias: ["Novillos 2-3"], actividad: "Clorsulon", tipo: "Antiparasitario", detalle: "" },
+  { mes: 6, categorias: ["Novillos 2-3"], actividad: "Ivermectina 1%", tipo: "Antiparasitario", detalle: "" },
+  { mes: 6, categorias: ["Vaquillonas 1-2"], actividad: "Clorsulon", tipo: "Antiparasitario", detalle: "" },
+  { mes: 6, categorias: ["Vaquillonas 1-2"], actividad: "Ivermectina 1%", tipo: "Antiparasitario", detalle: "" },
+  { mes: 6, categorias: ["Vaquillonas 1-2"], actividad: "Ricoverm doble dosis", tipo: "Antiparasitario", detalle: "" },
+  { mes: 6, categorias: ["Vacas de cr\xEDa"], actividad: "Leptospira", tipo: "Vacuna", detalle: "" },
+  { mes: 6, categorias: ["Vacas de cr\xEDa"], actividad: "Clorsulon", tipo: "Antiparasitario", detalle: "" },
+  { mes: 6, categorias: ["Vacas de cr\xEDa"], actividad: "Ivermectina 1%", tipo: "Antiparasitario", detalle: "" },
+  { mes: 6, categorias: ["Vaquillonas 2-3"], actividad: "Parici\xF3n", tipo: "Reproducci\xF3n", detalle: "Inicio 1/06" },
+  { mes: 6, categorias: ["Vaquillonas 2-3"], actividad: "Clorsulon", tipo: "Antiparasitario", detalle: "" },
+  { mes: 6, categorias: ["Vaquillonas 2-3"], actividad: "Ivermectina 1%", tipo: "Antiparasitario", detalle: "" },
+  { mes: 6, categorias: ["Toros"], actividad: "Clorsulon", tipo: "Antiparasitario", detalle: "" },
+  { mes: 6, categorias: ["Toros"], actividad: "Ivermectina 1%", tipo: "Antiparasitario", detalle: "" },
+  { mes: 6, categorias: CATEGORIAS, actividad: "Pesaje general", tipo: "Manejo", detalle: "Cierre de trimestre" },
+  { mes: 7, categorias: ["Vacas de cr\xEDa"], actividad: "Parici\xF3n", tipo: "Reproducci\xF3n", detalle: "Inicio 15/07" },
+  { mes: 7, categorias: ["Vaquillonas 2-3"], actividad: "Parici\xF3n", tipo: "Reproducci\xF3n", detalle: "En curso" },
+  { mes: 7, categorias: ["Toros"], actividad: "Evaluaci\xF3n androl\xF3gica", tipo: "Reproducci\xF3n", detalle: "1/07" },
+  { mes: 8, categorias: ["Novillos 1-2"], actividad: "Mancha y gangrena", tipo: "Vacuna", detalle: "" },
+  { mes: 8, categorias: ["Novillos 1-2"], actividad: "Clorsulon", tipo: "Antiparasitario", detalle: "" },
+  { mes: 8, categorias: ["Novillos 2-3"], actividad: "Clorsulon", tipo: "Antiparasitario", detalle: "" },
+  { mes: 8, categorias: ["Vaquillonas 1-2"], actividad: "Brucelosis", tipo: "Vacuna", detalle: "Revacunaci\xF3n" },
+  { mes: 8, categorias: ["Vaquillonas 1-2"], actividad: "Mancha y gangrena", tipo: "Vacuna", detalle: "" },
+  { mes: 8, categorias: ["Vaquillonas 1-2"], actividad: "Clorsulon", tipo: "Antiparasitario", detalle: "" },
+  { mes: 8, categorias: ["Vacas de cr\xEDa"], actividad: "Parici\xF3n", tipo: "Reproducci\xF3n", detalle: "En curso" },
+  { mes: 8, categorias: ["Vaquillonas 2-3"], actividad: "Parici\xF3n", tipo: "Reproducci\xF3n", detalle: "En curso" },
+  { mes: 8, categorias: ["Vaquillonas 2-3"], actividad: "Pongo parche", tipo: "Reproducci\xF3n", detalle: "" },
+  { mes: 8, categorias: ["Vaquillonas 2-3"], actividad: "Saco parche", tipo: "Reproducci\xF3n", detalle: "" },
+  { mes: 8, categorias: ["Vaquillonas 2-3"], actividad: "Carbuman", tipo: "Vacuna", detalle: "Hasta el 15/08" },
+  { mes: 8, categorias: ["Vaquillonas 2-3"], actividad: "Reproductiva", tipo: "Vacuna", detalle: "" },
+  { mes: 8, categorias: ["Vaquillonas 2-3"], actividad: "Clorsulon", tipo: "Antiparasitario", detalle: "" },
+  { mes: 8, categorias: ["Toros"], actividad: "Carbuman", tipo: "Vacuna", detalle: "" },
+  { mes: 8, categorias: ["Toros"], actividad: "Reproductiva", tipo: "Vacuna", detalle: "" },
+  { mes: 8, categorias: ["Toros"], actividad: "Clorsulon", tipo: "Antiparasitario", detalle: "" },
+  { mes: 9, categorias: ["Terneros", "Terneras"], actividad: "Trazabilidad", tipo: "Manejo", detalle: "" },
+  { mes: 9, categorias: ["Vacas de cr\xEDa"], actividad: "Parici\xF3n", tipo: "Reproducci\xF3n", detalle: "En curso" },
+  { mes: 9, categorias: ["Vacas de cr\xEDa"], actividad: "Carbuman", tipo: "Vacuna", detalle: "" },
+  { mes: 9, categorias: ["Vacas de cr\xEDa"], actividad: "Reproductiva", tipo: "Vacuna", detalle: "15/09" },
+  { mes: 9, categorias: ["Vacas de cr\xEDa"], actividad: "Nitroxinil", tipo: "Antiparasitario", detalle: "" },
+  { mes: 9, categorias: ["Vaquillonas 2-3"], actividad: "Inseminaci\xF3n", tipo: "Reproducci\xF3n", detalle: "1/09" },
+  { mes: 9, categorias: ["Vaquillonas 2-3"], actividad: "Parici\xF3n", tipo: "Reproducci\xF3n", detalle: "Fin 1/09" },
+  { mes: 9, categorias: ["Vaquillonas 2-3"], actividad: "Servicio", tipo: "Reproducci\xF3n", detalle: "Inicio 1/09" },
+  { mes: 9, categorias: CATEGORIAS, actividad: "Pesaje general", tipo: "Manejo", detalle: "Cierre de trimestre" },
+  { mes: 10, categorias: ["Terneros", "Terneras"], actividad: "Mancha y gangrena", tipo: "Vacuna", detalle: "Junto con la inseminaci\xF3n" },
+  { mes: 10, categorias: ["Novillos 1-2"], actividad: "Nitroxinil", tipo: "Antiparasitario", detalle: "" },
+  { mes: 10, categorias: ["Novillos 2-3"], actividad: "Nitroxinil", tipo: "Antiparasitario", detalle: "" },
+  { mes: 10, categorias: ["Vaquillonas 1-2"], actividad: "Nitroxinil", tipo: "Antiparasitario", detalle: "" },
+  { mes: 10, categorias: ["Vacas de cr\xEDa"], actividad: "Parici\xF3n", tipo: "Reproducci\xF3n", detalle: "Fin 31/10" },
+  { mes: 10, categorias: ["Vacas de cr\xEDa"], actividad: "Servicio", tipo: "Reproducci\xF3n", detalle: "Inicio 15/10" },
+  { mes: 10, categorias: ["Vaquillonas 2-3"], actividad: "Ecograf\xEDa", tipo: "Reproducci\xF3n", detalle: "Ecograf\xEDa de inseminaci\xF3n" },
+  { mes: 10, categorias: ["Vaquillonas 2-3"], actividad: "Servicio", tipo: "Reproducci\xF3n", detalle: "En curso" },
+  { mes: 10, categorias: ["Vaquillonas 2-3"], actividad: "Reproductiva", tipo: "Vacuna", detalle: "Junto con la ecograf\xEDa de inseminaci\xF3n" },
+  { mes: 10, categorias: ["Vaquillonas 2-3"], actividad: "Nitroxinil", tipo: "Antiparasitario", detalle: "" },
+  { mes: 10, categorias: ["Toros"], actividad: "Nitroxinil", tipo: "Antiparasitario", detalle: "" },
+  { mes: 11, categorias: ["Terneros", "Terneras"], actividad: "Mancha y gangrena", tipo: "Vacuna", detalle: "Junto con la ecograf\xEDa" },
+  { mes: 11, categorias: ["Terneros", "Terneras"], actividad: "Queratoconjuntivitis", tipo: "Vacuna", detalle: "Junto con la ecograf\xEDa" },
+  { mes: 11, categorias: ["Terneros", "Terneras"], actividad: "Ricobendazole", tipo: "Antiparasitario", detalle: "Junto con la ecograf\xEDa" },
+  { mes: 11, categorias: ["Vaquillonas 1-2"], actividad: "Brucelosis", tipo: "Vacuna", detalle: "Revacunaci\xF3n" },
+  { mes: 11, categorias: ["Vacas de cr\xEDa"], actividad: "DAO (actividad ov\xE1rica)", tipo: "Reproducci\xF3n", detalle: "" },
+  { mes: 11, categorias: ["Vacas de cr\xEDa"], actividad: "Servicio", tipo: "Reproducci\xF3n", detalle: "En curso" },
+  { mes: 11, categorias: ["Vaquillonas 2-3"], actividad: "Servicio", tipo: "Reproducci\xF3n", detalle: "En curso" },
+  { mes: 12, categorias: ["Novillos 1-2"], actividad: "Caravana mosca de los cuernos", tipo: "Antiparasitario", detalle: "" },
+  { mes: 12, categorias: ["Novillos 2-3"], actividad: "Caravana mosca de los cuernos", tipo: "Antiparasitario", detalle: "" },
+  { mes: 12, categorias: ["Vaquillonas 1-2"], actividad: "Caravana mosca de los cuernos", tipo: "Antiparasitario", detalle: "" },
+  { mes: 12, categorias: ["Vacas de cr\xEDa"], actividad: "Servicio", tipo: "Reproducci\xF3n", detalle: "En curso" },
+  { mes: 12, categorias: ["Vacas de cr\xEDa"], actividad: "Caravana mosca de los cuernos", tipo: "Antiparasitario", detalle: "" },
+  { mes: 12, categorias: ["Vacas de cr\xEDa"], actividad: "Clorsulon", tipo: "Antiparasitario", detalle: "Junto con la ecograf\xEDa" },
+  { mes: 12, categorias: ["Vaquillonas 2-3"], actividad: "Servicio", tipo: "Reproducci\xF3n", detalle: "Fin (diciembre)" },
+  { mes: 12, categorias: ["Vaquillonas 2-3"], actividad: "Caravana mosca de los cuernos", tipo: "Antiparasitario", detalle: "" },
+  { mes: 12, categorias: ["Toros"], actividad: "Caravana mosca de los cuernos", tipo: "Antiparasitario", detalle: "" },
+  { mes: 12, categorias: CATEGORIAS, actividad: "Pesaje general", tipo: "Manejo", detalle: "Cierre de trimestre" }
+];
 const CATEGORIA_COLOR = {
   "Vacas de cr\xEDa": "#C98A3D",
   "Vacas descarte": "#9C6B2C",
@@ -122,6 +272,14 @@ function CorralApp() {
   const [movObservaciones, setMovObservaciones] = useState("");
   const [stockError, setStockError] = useState("");
   const [categoriaVerMes, setCategoriaVerMes] = useState("");
+  const [fichaInsumos, setFichaInsumos] = useState({});
+  const [fichaLoading, setFichaLoading] = useState(true);
+  const [fichaSyncError, setFichaSyncError] = useState(false);
+  const [fichaInsumoSel, setFichaInsumoSel] = useState("");
+  const [fichaProducto, setFichaProducto] = useState("");
+  const [fichaDosis, setFichaDosis] = useState("");
+  const [fichaRetiro, setFichaRetiro] = useState("");
+  const [mostrarFormFicha, setMostrarFormFicha] = useState(false);
   useEffect(() => {
     setSyncError(false);
     if (typeof window.db === "undefined") {
@@ -184,6 +342,35 @@ function CorralApp() {
     } catch (e) {
       setStockSyncError(true);
       setStockLoading(false);
+    }
+    return () => unsub();
+  }, []);
+  useEffect(() => {
+    setFichaSyncError(false);
+    if (typeof window.db === "undefined") {
+      setFichaSyncError(true);
+      setFichaLoading(false);
+      return;
+    }
+    let unsub = () => {
+    };
+    try {
+      unsub = window.db.collection("app").doc("ficha").onSnapshot(
+        (doc) => {
+          const data = doc.exists ? doc.data() : null;
+          const parsed = data && data.value ? JSON.parse(data.value) : null;
+          setFichaInsumos(parsed || {});
+          setFichaLoading(false);
+          setFichaSyncError(false);
+        },
+        (e) => {
+          setFichaSyncError(true);
+          setFichaLoading(false);
+        }
+      );
+    } catch (e) {
+      setFichaSyncError(true);
+      setFichaLoading(false);
     }
     return () => unsub();
   }, []);
@@ -281,6 +468,45 @@ function CorralApp() {
   }
   function handleEliminarMovimiento(id) {
     persistStock({ stockBase, movimientos: movimientos.filter((m) => m.id !== id) });
+  }
+  function persistFicha(next) {
+    setFichaInsumos(next);
+    syncFichaToCloud(next);
+  }
+  async function syncFichaToCloud(next) {
+    try {
+      if (typeof window.db === "undefined") throw new Error("sin conexi\xF3n con la base");
+      const escritura = window.db.collection("app").doc("ficha").set({ value: JSON.stringify(next), actualizadoEn: Date.now() });
+      const tiempoLimite = new Promise(
+        (_, reject) => setTimeout(() => reject(new Error("tiempo de espera agotado")), 2e4)
+      );
+      await Promise.race([escritura, tiempoLimite]);
+      setWriteNotice("");
+    } catch (e) {
+      setWriteNotice(
+        "La ficha qued\xF3 guardada en este aparato, pero todav\xEDa no se confirm\xF3 en la nube (se\xF1al d\xE9bil). Los dem\xE1s aparatos no la van a ver hasta que se confirme."
+      );
+    }
+  }
+  function handleGuardarFicha(e) {
+    e.preventDefault();
+    if (!fichaInsumoSel) return;
+    const next = {
+      ...fichaInsumos,
+      [fichaInsumoSel]: {
+        producto: fichaProducto.trim(),
+        dosis: fichaDosis.trim(),
+        retiro: fichaRetiro.trim()
+      }
+    };
+    persistFicha(next);
+    setToast("Ficha guardada");
+    setTimeout(() => setToast(""), 1800);
+    setMostrarFormFicha(false);
+    setFichaInsumoSel("");
+    setFichaProducto("");
+    setFichaDosis("");
+    setFichaRetiro("");
   }
   function toggleInsumo(item) {
     setInsumosSel((prev) => prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]);
@@ -436,6 +662,22 @@ function CorralApp() {
       return { mes, entradas: porMes[mes].entradas, salidas: porMes[mes].salidas, saldo };
     });
   }, [movimientos, stockBase, categoriaVerMes]);
+  const retirosActivos = useMemo(() => {
+    const todos = [...insumosSel, ...insumoOtro.split(",").map((s) => s.trim()).filter(Boolean)];
+    return todos.filter((i) => fichaInsumos[i] && fichaInsumos[i].retiro).map((i) => ({ insumo: i, retiro: fichaInsumos[i].retiro }));
+  }, [insumosSel, insumoOtro, fichaInsumos]);
+  const planDelMes = useMemo(() => {
+    if (!fecha || !categoria) return [];
+    const mesNum = Number(fecha.slice(5, 7));
+    const ym = fecha.slice(0, 7);
+    return PLAN_SANITARIO.filter((p) => p.mes === mesNum && p.categorias.includes(categoria)).map((p) => {
+      const insumoApp = insumoDeActividad(p.actividad);
+      const hecho = entries.some(
+        (e) => e.categoria === categoria && e.insumo === insumoApp && e.fecha.slice(0, 7) === ym
+      );
+      return { ...p, insumoApp, hecho };
+    });
+  }, [fecha, categoria, entries]);
   const lotesOrdenados = useMemo(
     () => [...lotes].sort((a, b) => b.fecha.localeCompare(a.fecha) || b.loteId.localeCompare(a.loteId)),
     [lotes]
@@ -504,10 +746,18 @@ function CorralApp() {
     ];
     const wsStock = XLSX.utils.aoa_to_sheet(stockRows);
     wsStock["!cols"] = [{ wch: 11 }, { wch: 16 }, { wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 30 }];
+    const fichaRows = [
+      ["Ficha de insumos"],
+      ["Insumo", "Producto", "Dosis", "D\xEDas de retiro"],
+      ...Object.keys(fichaInsumos).sort().map((ins) => [ins, fichaInsumos[ins].producto, fichaInsumos[ins].dosis, fichaInsumos[ins].retiro])
+    ];
+    const wsFicha = XLSX.utils.aoa_to_sheet(fichaRows);
+    wsFicha["!cols"] = [{ wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 14 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, wsRegistro, "Registro");
     XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
     XLSX.utils.book_append_sheet(wb, wsStock, "Stock");
+    XLSX.utils.book_append_sheet(wb, wsFicha, "Ficha insumos");
     XLSX.writeFile(wb, `mangas_gd_${hoyISO()}.xlsx`);
   }
   function LoteCard({ lote, showDelete }) {
@@ -764,6 +1014,7 @@ function CorralApp() {
           background: var(--surface-2);
           cursor: pointer;
           font-size: 13px;
+          font-family: 'Inter', sans-serif;
           margin: 0;
           text-transform: none;
           letter-spacing: normal;
@@ -780,6 +1031,30 @@ function CorralApp() {
           border-color: var(--brass);
           color: #1C1815;
           font-weight: 600;
+        }
+        .chip.done {
+          background: var(--surface-2);
+          border-color: var(--success);
+          color: var(--success);
+          opacity: 0.75;
+          cursor: default;
+        }
+        .plan-mes {
+          margin: 14px 0 0;
+          padding: 12px;
+          background: var(--surface-2);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+        }
+        .plan-mes .checks { margin-top: 2px; }
+        .retiro-aviso {
+          background: var(--danger-bg);
+          border: 1px solid var(--danger);
+          color: #E8A99A;
+          padding: 10px 12px;
+          border-radius: 8px;
+          font-size: 13px;
+          margin-top: 14px;
         }
         .lote-card {
           padding: 12px 0;
@@ -925,7 +1200,21 @@ function CorralApp() {
       value: potrero,
       onChange: (e) => setPotrero(e.target.value)
     }
-  ), /* @__PURE__ */ React.createElement("datalist", { id: "potreros-list" }, potrerosConocidos.map((p) => /* @__PURE__ */ React.createElement("option", { key: p, value: p }))), /* @__PURE__ */ React.createElement("label", null, "Categor\xEDa"), /* @__PURE__ */ React.createElement("select", { value: categoria, onChange: (e) => setCategoria(e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Elegir categor\xEDa\u2026"), CATEGORIAS.map((c) => /* @__PURE__ */ React.createElement("option", { key: c, value: c }, c))), /* @__PURE__ */ React.createElement("label", null, "Insumos aplicados"), INSUMO_GRUPOS.map((g) => /* @__PURE__ */ React.createElement("div", { key: g.grupo }, /* @__PURE__ */ React.createElement("div", { className: "grupo-titulo" }, g.grupo), /* @__PURE__ */ React.createElement("div", { className: "checks" }, g.items.map((item) => {
+  ), /* @__PURE__ */ React.createElement("datalist", { id: "potreros-list" }, potrerosConocidos.map((p) => /* @__PURE__ */ React.createElement("option", { key: p, value: p }))), /* @__PURE__ */ React.createElement("label", null, "Categor\xEDa"), /* @__PURE__ */ React.createElement("select", { value: categoria, onChange: (e) => setCategoria(e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Elegir categor\xEDa\u2026"), CATEGORIAS.map((c) => /* @__PURE__ */ React.createElement("option", { key: c, value: c }, c))), categoria && planDelMes.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "plan-mes" }, /* @__PURE__ */ React.createElement("div", { className: "grupo-titulo" }, "Plan de ", MESES_NOMBRE[Number(fecha.slice(5, 7)) - 1], " para ", categoria), /* @__PURE__ */ React.createElement("div", { className: "checks" }, planDelMes.map((p, i) => {
+    const seleccionado = insumosSel.includes(p.insumoApp);
+    return /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        key: i,
+        className: `chip ${p.hecho ? "done" : seleccionado ? "checked" : ""}`,
+        onClick: () => !p.hecho && toggleInsumo(p.insumoApp)
+      },
+      p.hecho ? "\u2713 " : "",
+      p.actividad,
+      p.detalle ? ` \xB7 ${p.detalle}` : ""
+    );
+  }))), /* @__PURE__ */ React.createElement("label", null, "Insumos aplicados"), INSUMO_GRUPOS.map((g) => /* @__PURE__ */ React.createElement("div", { key: g.grupo }, /* @__PURE__ */ React.createElement("div", { className: "grupo-titulo" }, g.grupo), /* @__PURE__ */ React.createElement("div", { className: "checks" }, g.items.map((item) => {
     const checked = insumosSel.includes(item);
     return /* @__PURE__ */ React.createElement("label", { key: item, className: `chip ${checked ? "checked" : ""}` }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked, onChange: () => toggleInsumo(item) }), item);
   })))), /* @__PURE__ */ React.createElement("div", { className: "grupo-titulo" }, "Otro"), /* @__PURE__ */ React.createElement(
@@ -942,7 +1231,7 @@ function CorralApp() {
       value: observaciones,
       onChange: (e) => setObservaciones(e.target.value)
     }
-  ), error && /* @__PURE__ */ React.createElement("div", { className: "error" }, error), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", type: "submit" }, editingLoteId ? "Guardar cambios" : "Guardar registro"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "\xDAltimos registros"), ultimosLotes.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, loading ? "Sincronizando\u2026" : "Todav\xEDa no cargaste ning\xFAn registro.") : ultimosLotes.map((l) => /* @__PURE__ */ React.createElement(LoteCard, { lote: l, showDelete: true, key: l.loteId }))), entries.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { className: "btn btn-secondary", onClick: exportarExcel }, "Descargar Excel"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-danger", onClick: handleVaciar }, "Vaciar todos los registros"))), tab === "resumen" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Stock actual"), stockSyncError && /* @__PURE__ */ React.createElement("div", { className: "error", style: { marginBottom: 12 } }, "Sin conexi\xF3n con la base compartida para el stock."), /* @__PURE__ */ React.createElement("div", { className: "table-wrap" }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Categor\xEDa"), /* @__PURE__ */ React.createElement("th", null, "Cantidad"))), /* @__PURE__ */ React.createElement("tbody", null, CATEGORIAS.map((c) => /* @__PURE__ */ React.createElement("tr", { key: c }, /* @__PURE__ */ React.createElement("td", null, c), /* @__PURE__ */ React.createElement("td", null, stockActual[c] || 0))), /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("td", { style: { fontWeight: 700 } }, "Total"), /* @__PURE__ */ React.createElement("td", { style: { fontWeight: 700 } }, totalStock))))), stockBase && /* @__PURE__ */ React.createElement("div", { className: "l2", style: { marginTop: 8 } }, "Base cargada el ", fechaLegible(stockBase.fecha)), /* @__PURE__ */ React.createElement("div", { className: "lote-actions", style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement(
+  ), retirosActivos.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "retiro-aviso" }, "D\xEDas de retiro a tener en cuenta:", " ", retirosActivos.map((r) => `${r.insumo} (${r.retiro} d\xEDas)`).join(" \xB7 ")), error && /* @__PURE__ */ React.createElement("div", { className: "error" }, error), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", type: "submit" }, editingLoteId ? "Guardar cambios" : "Guardar registro"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "\xDAltimos registros"), ultimosLotes.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, loading ? "Sincronizando\u2026" : "Todav\xEDa no cargaste ning\xFAn registro.") : ultimosLotes.map((l) => /* @__PURE__ */ React.createElement(LoteCard, { lote: l, showDelete: true, key: l.loteId }))), entries.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { className: "btn btn-secondary", onClick: exportarExcel }, "Descargar Excel"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-danger", onClick: handleVaciar }, "Vaciar todos los registros"))), tab === "resumen" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Stock actual"), stockSyncError && /* @__PURE__ */ React.createElement("div", { className: "error", style: { marginBottom: 12 } }, "Sin conexi\xF3n con la base compartida para el stock."), /* @__PURE__ */ React.createElement("div", { className: "table-wrap" }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Categor\xEDa"), /* @__PURE__ */ React.createElement("th", null, "Cantidad"))), /* @__PURE__ */ React.createElement("tbody", null, CATEGORIAS.map((c) => /* @__PURE__ */ React.createElement("tr", { key: c }, /* @__PURE__ */ React.createElement("td", null, c), /* @__PURE__ */ React.createElement("td", null, stockActual[c] || 0))), /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("td", { style: { fontWeight: 700 } }, "Total"), /* @__PURE__ */ React.createElement("td", { style: { fontWeight: 700 } }, totalStock))))), stockBase && /* @__PURE__ */ React.createElement("div", { className: "l2", style: { marginTop: 8 } }, "Base cargada el ", fechaLegible(stockBase.fecha)), /* @__PURE__ */ React.createElement("div", { className: "lote-actions", style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement(
     "button",
     {
       type: "button",
@@ -1029,7 +1318,62 @@ function CorralApp() {
       value: movObservaciones,
       onChange: (e) => setMovObservaciones(e.target.value)
     }
-  ), stockError && /* @__PURE__ */ React.createElement("div", { className: "error" }, stockError), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", type: "submit" }, "Guardar movimiento"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Evoluci\xF3n mensual"), /* @__PURE__ */ React.createElement("label", null, "Categor\xEDa"), /* @__PURE__ */ React.createElement("select", { value: categoriaVerMes, onChange: (e) => setCategoriaVerMes(e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Elegir categor\xEDa\u2026"), CATEGORIAS.map((c) => /* @__PURE__ */ React.createElement("option", { key: c, value: c }, c))), categoriaVerMes && (evolucionMensual.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Sin movimientos registrados para esta categor\xEDa.") : /* @__PURE__ */ React.createElement("div", { className: "table-wrap", style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Mes"), /* @__PURE__ */ React.createElement("th", null, "Entradas"), /* @__PURE__ */ React.createElement("th", null, "Salidas"), /* @__PURE__ */ React.createElement("th", null, "Saldo"))), /* @__PURE__ */ React.createElement("tbody", null, evolucionMensual.map((r) => /* @__PURE__ */ React.createElement("tr", { key: r.mes }, /* @__PURE__ */ React.createElement("td", null, mesLegible(r.mes)), /* @__PURE__ */ React.createElement("td", null, r.entradas), /* @__PURE__ */ React.createElement("td", null, r.salidas), /* @__PURE__ */ React.createElement("td", null, r.saldo)))))))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "\xDAltimos movimientos"), movimientosOrdenados.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, stockLoading ? "Sincronizando\u2026" : "Todav\xEDa no cargaste ning\xFAn movimiento.") : movimientosOrdenados.slice(0, 8).map((m) => /* @__PURE__ */ React.createElement("div", { className: "lote-card", key: m.id }, /* @__PURE__ */ React.createElement("div", { className: "lote-head" }, /* @__PURE__ */ React.createElement(
+  ), stockError && /* @__PURE__ */ React.createElement("div", { className: "error" }, stockError), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", type: "submit" }, "Guardar movimiento"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Ficha de insumos"), fichaSyncError && /* @__PURE__ */ React.createElement("div", { className: "error", style: { marginBottom: 12 } }, "Sin conexi\xF3n con la base compartida para la ficha."), Object.keys(fichaInsumos).length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, fichaLoading ? "Sincronizando\u2026" : "Todav\xEDa no cargaste ninguna ficha.") : /* @__PURE__ */ React.createElement("div", { className: "table-wrap" }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Insumo"), /* @__PURE__ */ React.createElement("th", null, "Producto"), /* @__PURE__ */ React.createElement("th", null, "Dosis"), /* @__PURE__ */ React.createElement("th", null, "Retiro"))), /* @__PURE__ */ React.createElement("tbody", null, Object.keys(fichaInsumos).sort().map((ins) => /* @__PURE__ */ React.createElement("tr", { key: ins }, /* @__PURE__ */ React.createElement("td", null, ins), /* @__PURE__ */ React.createElement("td", null, fichaInsumos[ins].producto || "\u2014"), /* @__PURE__ */ React.createElement("td", null, fichaInsumos[ins].dosis || "\u2014"), /* @__PURE__ */ React.createElement("td", null, fichaInsumos[ins].retiro ? `${fichaInsumos[ins].retiro} d\xEDas` : "\u2014")))))), /* @__PURE__ */ React.createElement("div", { className: "lote-actions", style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      className: "link-btn",
+      onClick: () => {
+        setMostrarFormFicha((v) => !v);
+        if (!mostrarFormFicha) {
+          setFichaInsumoSel("");
+          setFichaProducto("");
+          setFichaDosis("");
+          setFichaRetiro("");
+        }
+      }
+    },
+    mostrarFormFicha ? "Cancelar" : "Cargar / editar ficha"
+  )), mostrarFormFicha && /* @__PURE__ */ React.createElement("form", { onSubmit: handleGuardarFicha, style: { marginTop: 14 } }, /* @__PURE__ */ React.createElement("label", null, "Insumo"), /* @__PURE__ */ React.createElement(
+    "select",
+    {
+      value: fichaInsumoSel,
+      onChange: (e) => {
+        const ins = e.target.value;
+        setFichaInsumoSel(ins);
+        const existente = fichaInsumos[ins];
+        setFichaProducto(existente ? existente.producto : "");
+        setFichaDosis(existente ? existente.dosis : "");
+        setFichaRetiro(existente ? existente.retiro : "");
+      }
+    },
+    /* @__PURE__ */ React.createElement("option", { value: "" }, "Elegir insumo\u2026"),
+    ALL_INSUMOS.map((i) => /* @__PURE__ */ React.createElement("option", { key: i, value: i }, i))
+  ), /* @__PURE__ */ React.createElement("label", null, "Producto comercial"), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      placeholder: "Ej: Ivomec Gold",
+      value: fichaProducto,
+      onChange: (e) => setFichaProducto(e.target.value)
+    }
+  ), /* @__PURE__ */ React.createElement("label", null, "Dosis"), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      placeholder: "Ej: 1 ml cada 50 kg",
+      value: fichaDosis,
+      onChange: (e) => setFichaDosis(e.target.value)
+    }
+  ), /* @__PURE__ */ React.createElement("label", null, "D\xEDas de retiro"), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "number",
+      min: "0",
+      inputMode: "numeric",
+      placeholder: "0",
+      value: fichaRetiro,
+      onChange: (e) => setFichaRetiro(e.target.value)
+    }
+  ), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", type: "submit", disabled: !fichaInsumoSel }, "Guardar ficha"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Evoluci\xF3n mensual"), /* @__PURE__ */ React.createElement("label", null, "Categor\xEDa"), /* @__PURE__ */ React.createElement("select", { value: categoriaVerMes, onChange: (e) => setCategoriaVerMes(e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Elegir categor\xEDa\u2026"), CATEGORIAS.map((c) => /* @__PURE__ */ React.createElement("option", { key: c, value: c }, c))), categoriaVerMes && (evolucionMensual.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, "Sin movimientos registrados para esta categor\xEDa.") : /* @__PURE__ */ React.createElement("div", { className: "table-wrap", style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Mes"), /* @__PURE__ */ React.createElement("th", null, "Entradas"), /* @__PURE__ */ React.createElement("th", null, "Salidas"), /* @__PURE__ */ React.createElement("th", null, "Saldo"))), /* @__PURE__ */ React.createElement("tbody", null, evolucionMensual.map((r) => /* @__PURE__ */ React.createElement("tr", { key: r.mes }, /* @__PURE__ */ React.createElement("td", null, mesLegible(r.mes)), /* @__PURE__ */ React.createElement("td", null, r.entradas), /* @__PURE__ */ React.createElement("td", null, r.salidas), /* @__PURE__ */ React.createElement("td", null, r.saldo)))))))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "\xDAltimos movimientos"), movimientosOrdenados.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, stockLoading ? "Sincronizando\u2026" : "Todav\xEDa no cargaste ning\xFAn movimiento.") : movimientosOrdenados.slice(0, 8).map((m) => /* @__PURE__ */ React.createElement("div", { className: "lote-card", key: m.id }, /* @__PURE__ */ React.createElement("div", { className: "lote-head" }, /* @__PURE__ */ React.createElement(
     "span",
     {
       className: "tag",
