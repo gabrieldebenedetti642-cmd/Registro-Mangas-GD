@@ -239,6 +239,7 @@ function GDMark() {
 }
 function CorralApp() {
   const [tab, setTab] = useState("cargar");
+  const [mesPlanSeleccionado, setMesPlanSeleccionado] = useState((/* @__PURE__ */ new Date()).getMonth() + 1);
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [writeNotice, setWriteNotice] = useState("");
@@ -678,6 +679,33 @@ function CorralApp() {
       return { ...p, insumoApp, hecho };
     });
   }, [fecha, categoria, entries]);
+  const planTabPorCategoria = useMemo(() => {
+    const anio = (/* @__PURE__ */ new Date()).getFullYear();
+    const porCategoria2 = {};
+    CATEGORIAS.forEach((c) => {
+      porCategoria2[c] = [];
+    });
+    PLAN_SANITARIO.filter((p) => p.mes === mesPlanSeleccionado).forEach((p) => {
+      p.categorias.forEach((cat) => {
+        if (!porCategoria2[cat]) return;
+        const insumoApp = insumoDeActividad(p.actividad);
+        const hecho = entries.some(
+          (e) => e.categoria === cat && e.insumo === insumoApp && Number(e.fecha.slice(5, 7)) === mesPlanSeleccionado && Number(e.fecha.slice(0, 4)) === anio
+        );
+        porCategoria2[cat].push({ ...p, insumoApp, hecho });
+      });
+    });
+    return porCategoria2;
+  }, [mesPlanSeleccionado, entries]);
+  const planTabResumen = useMemo(() => {
+    let total = 0;
+    let hechos = 0;
+    Object.values(planTabPorCategoria).forEach((lista) => {
+      total += lista.length;
+      hechos += lista.filter((p) => p.hecho).length;
+    });
+    return { total, hechos };
+  }, [planTabPorCategoria]);
   const lotesOrdenados = useMemo(
     () => [...lotes].sort((a, b) => b.fecha.localeCompare(a.fecha) || b.loteId.localeCompare(a.loteId)),
     [lotes]
@@ -983,6 +1011,7 @@ function CorralApp() {
           padding: 3px 9px 3px 6px;
           border-radius: 20px;
           font-size: 11.5px;
+          font-family: 'Inter', sans-serif;
           font-weight: 600;
           color: #1C1815;
           white-space: nowrap;
@@ -1055,6 +1084,50 @@ function CorralApp() {
           border-radius: 8px;
           font-size: 13px;
           margin-top: 14px;
+        }
+        .mes-nav {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-top: 4px;
+        }
+        .mes-nav select { flex: 1; }
+        .mes-nav-btn {
+          flex-shrink: 0;
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          border: 1px solid var(--border);
+          background: var(--surface-2);
+          color: var(--text);
+          font-size: 18px;
+          cursor: pointer;
+        }
+        .plan-lista {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .plan-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          padding: 8px 0;
+          border-bottom: 1px solid var(--border);
+          font-size: 14px;
+        }
+        .plan-item:last-child { border-bottom: none; }
+        .plan-check {
+          flex-shrink: 0;
+          width: 20px;
+          text-align: center;
+          color: var(--muted);
+          font-weight: 700;
+        }
+        .plan-item.hecho .plan-check { color: var(--success); }
+        .plan-item.hecho .plan-texto {
+          color: var(--muted);
+          text-decoration: line-through;
         }
         .lote-card {
           padding: 12px 0;
@@ -1182,7 +1255,7 @@ function CorralApp() {
       "aria-label": theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"
     },
     theme === "dark" ? "\u2600" : "\u263E"
-  )), /* @__PURE__ */ React.createElement("div", { className: "tabs" }, /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "cargar" ? "active" : ""}`, onClick: () => setTab("cargar") }, "Cargar"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "resumen" ? "active" : ""}`, onClick: () => setTab("resumen") }, "Resumen"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "buscar" ? "active" : ""}`, onClick: () => setTab("buscar") }, "Buscar")), syncError && /* @__PURE__ */ React.createElement("div", { className: "error", style: { marginBottom: 14 } }, "Sin conexi\xF3n con la base compartida. Revis\xE1 tu internet \u2014 mientras tanto pod\xE9s seguir viendo lo \xFAltimo sincronizado, pero lo que cargues ahora podr\xEDa no guardarse."), !syncError && writeNotice && /* @__PURE__ */ React.createElement("div", { className: "error", style: { marginBottom: 14 } }, writeNotice), /* @__PURE__ */ React.createElement(React.Fragment, null, tab === "cargar" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, editingLoteId && /* @__PURE__ */ React.createElement("div", { className: "edit-banner" }, "Editando registro", /* @__PURE__ */ React.createElement("button", { type: "button", className: "link-btn", onClick: handleCancelarEdicion }, "Cancelar")), /* @__PURE__ */ React.createElement("form", { onSubmit: handleGuardar }, /* @__PURE__ */ React.createElement("label", null, "Fecha"), /* @__PURE__ */ React.createElement("input", { type: "date", value: fecha, onChange: (e) => setFecha(e.target.value) }), /* @__PURE__ */ React.createElement("label", null, "Cantidad de animales"), /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement("div", { className: "tabs" }, /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "cargar" ? "active" : ""}`, onClick: () => setTab("cargar") }, "Cargar"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "plan" ? "active" : ""}`, onClick: () => setTab("plan") }, "Plan"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "resumen" ? "active" : ""}`, onClick: () => setTab("resumen") }, "Resumen"), /* @__PURE__ */ React.createElement("button", { className: `tab-btn ${tab === "buscar" ? "active" : ""}`, onClick: () => setTab("buscar") }, "Buscar")), syncError && /* @__PURE__ */ React.createElement("div", { className: "error", style: { marginBottom: 14 } }, "Sin conexi\xF3n con la base compartida. Revis\xE1 tu internet \u2014 mientras tanto pod\xE9s seguir viendo lo \xFAltimo sincronizado, pero lo que cargues ahora podr\xEDa no guardarse."), !syncError && writeNotice && /* @__PURE__ */ React.createElement("div", { className: "error", style: { marginBottom: 14 } }, writeNotice), /* @__PURE__ */ React.createElement(React.Fragment, null, tab === "cargar" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, editingLoteId && /* @__PURE__ */ React.createElement("div", { className: "edit-banner" }, "Editando registro", /* @__PURE__ */ React.createElement("button", { type: "button", className: "link-btn", onClick: handleCancelarEdicion }, "Cancelar")), /* @__PURE__ */ React.createElement("form", { onSubmit: handleGuardar }, /* @__PURE__ */ React.createElement("label", null, "Fecha"), /* @__PURE__ */ React.createElement("input", { type: "date", value: fecha, onChange: (e) => setFecha(e.target.value) }), /* @__PURE__ */ React.createElement("label", null, "Cantidad de animales"), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "number",
@@ -1231,7 +1304,32 @@ function CorralApp() {
       value: observaciones,
       onChange: (e) => setObservaciones(e.target.value)
     }
-  ), retirosActivos.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "retiro-aviso" }, "D\xEDas de retiro a tener en cuenta:", " ", retirosActivos.map((r) => `${r.insumo} (${r.retiro} d\xEDas)`).join(" \xB7 ")), error && /* @__PURE__ */ React.createElement("div", { className: "error" }, error), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", type: "submit" }, editingLoteId ? "Guardar cambios" : "Guardar registro"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "\xDAltimos registros"), ultimosLotes.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, loading ? "Sincronizando\u2026" : "Todav\xEDa no cargaste ning\xFAn registro.") : ultimosLotes.map((l) => /* @__PURE__ */ React.createElement(LoteCard, { lote: l, showDelete: true, key: l.loteId }))), entries.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { className: "btn btn-secondary", onClick: exportarExcel }, "Descargar Excel"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-danger", onClick: handleVaciar }, "Vaciar todos los registros"))), tab === "resumen" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Stock actual"), stockSyncError && /* @__PURE__ */ React.createElement("div", { className: "error", style: { marginBottom: 12 } }, "Sin conexi\xF3n con la base compartida para el stock."), /* @__PURE__ */ React.createElement("div", { className: "table-wrap" }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Categor\xEDa"), /* @__PURE__ */ React.createElement("th", null, "Cantidad"))), /* @__PURE__ */ React.createElement("tbody", null, CATEGORIAS.map((c) => /* @__PURE__ */ React.createElement("tr", { key: c }, /* @__PURE__ */ React.createElement("td", null, c), /* @__PURE__ */ React.createElement("td", null, stockActual[c] || 0))), /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("td", { style: { fontWeight: 700 } }, "Total"), /* @__PURE__ */ React.createElement("td", { style: { fontWeight: 700 } }, totalStock))))), stockBase && /* @__PURE__ */ React.createElement("div", { className: "l2", style: { marginTop: 8 } }, "Base cargada el ", fechaLegible(stockBase.fecha)), /* @__PURE__ */ React.createElement("div", { className: "lote-actions", style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement(
+  ), retirosActivos.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "retiro-aviso" }, "D\xEDas de retiro a tener en cuenta:", " ", retirosActivos.map((r) => `${r.insumo} (${r.retiro} d\xEDas)`).join(" \xB7 ")), error && /* @__PURE__ */ React.createElement("div", { className: "error" }, error), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", type: "submit" }, editingLoteId ? "Guardar cambios" : "Guardar registro"))), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "\xDAltimos registros"), ultimosLotes.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty" }, loading ? "Sincronizando\u2026" : "Todav\xEDa no cargaste ning\xFAn registro.") : ultimosLotes.map((l) => /* @__PURE__ */ React.createElement(LoteCard, { lote: l, showDelete: true, key: l.loteId }))), entries.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { className: "btn btn-secondary", onClick: exportarExcel }, "Descargar Excel"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-danger", onClick: handleVaciar }, "Vaciar todos los registros"))), tab === "plan" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Plan sanitario"), /* @__PURE__ */ React.createElement("div", { className: "mes-nav" }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      className: "mes-nav-btn",
+      onClick: () => setMesPlanSeleccionado((m) => m === 1 ? 12 : m - 1),
+      "aria-label": "Mes anterior"
+    },
+    "\u2039"
+  ), /* @__PURE__ */ React.createElement(
+    "select",
+    {
+      value: mesPlanSeleccionado,
+      onChange: (e) => setMesPlanSeleccionado(Number(e.target.value))
+    },
+    MESES_NOMBRE.map((m, i) => /* @__PURE__ */ React.createElement("option", { key: m, value: i + 1 }, m.charAt(0).toUpperCase() + m.slice(1)))
+  ), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      className: "mes-nav-btn",
+      onClick: () => setMesPlanSeleccionado((m) => m === 12 ? 1 : m + 1),
+      "aria-label": "Mes siguiente"
+    },
+    "\u203A"
+  )), planTabResumen.total > 0 && /* @__PURE__ */ React.createElement("div", { className: "l2", style: { marginTop: 10 } }, planTabResumen.hechos, " de ", planTabResumen.total, " tareas hechas este mes")), planTabResumen.total === 0 ? /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("div", { className: "empty" }, "No hay tareas planificadas para este mes.")) : CATEGORIAS.filter((c) => planTabPorCategoria[c] && planTabPorCategoria[c].length > 0).map((c) => /* @__PURE__ */ React.createElement("div", { className: "card", key: c }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, /* @__PURE__ */ React.createElement("span", { className: "tag", style: { background: CATEGORIA_COLOR[c] || "#8a8a8a" } }, /* @__PURE__ */ React.createElement("span", { className: "dot" }), c)), /* @__PURE__ */ React.createElement("div", { className: "plan-lista" }, planTabPorCategoria[c].map((p, i) => /* @__PURE__ */ React.createElement("div", { className: `plan-item ${p.hecho ? "hecho" : ""}`, key: i }, /* @__PURE__ */ React.createElement("span", { className: "plan-check" }, p.hecho ? "\u2713" : "\u25CB"), /* @__PURE__ */ React.createElement("span", { className: "plan-texto" }, p.actividad, p.detalle ? ` \xB7 ${p.detalle}` : ""))))))), tab === "resumen" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("h3", { className: "section-title" }, "Stock actual"), stockSyncError && /* @__PURE__ */ React.createElement("div", { className: "error", style: { marginBottom: 12 } }, "Sin conexi\xF3n con la base compartida para el stock."), /* @__PURE__ */ React.createElement("div", { className: "table-wrap" }, /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Categor\xEDa"), /* @__PURE__ */ React.createElement("th", null, "Cantidad"))), /* @__PURE__ */ React.createElement("tbody", null, CATEGORIAS.map((c) => /* @__PURE__ */ React.createElement("tr", { key: c }, /* @__PURE__ */ React.createElement("td", null, c), /* @__PURE__ */ React.createElement("td", null, stockActual[c] || 0))), /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("td", { style: { fontWeight: 700 } }, "Total"), /* @__PURE__ */ React.createElement("td", { style: { fontWeight: 700 } }, totalStock))))), stockBase && /* @__PURE__ */ React.createElement("div", { className: "l2", style: { marginTop: 8 } }, "Base cargada el ", fechaLegible(stockBase.fecha)), /* @__PURE__ */ React.createElement("div", { className: "lote-actions", style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement(
     "button",
     {
       type: "button",
